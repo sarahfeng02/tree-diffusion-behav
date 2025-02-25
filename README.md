@@ -10,11 +10,24 @@ The experiment begins with 192 trials of training, in which they are shown one s
 
 Each silhouette is called a 'inference,' and each question regarding the two blocks is called an 'inference.' 
 
-## Using the code
+## Code structure
 
 In *assets/all_info*, each subject has their own folder, inside which is a CSV file containing information about their exact original trial structure from the 2023 experiment. This is to ensure that the ordering matches the original experiment. These were pulled from the Matlab files provided by Philip Schwartenbeck.
 
 In *assets/graph...*, each graph (the stimuli sets) has their own inferences and all of the different probes. The code randomly selects a graph for the participant and randomly chooses subjects who had that graph in the original experiment and then mirrors the exact trial structure. It uses this to load the different inferences and probes in different orders.
 
 In *src/experiment.js*, there is the actual experiment code.
+
+## Running the code
+
+After downloading the repository:
+
+1. Use `cd` to get to the directory so that you are currently inside of `tree-diffusion-behav`.
+2. Run `npm run build`.
+3. Run `npm start`.
+4. You can then access the experiment via the link that the terminal will give you on your browser.
+5. The data will be saved to your local desktop.
+
+   
+
 
