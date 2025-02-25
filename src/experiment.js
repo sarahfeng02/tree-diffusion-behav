@@ -54,11 +54,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   
   // Initialize, load stimuli
 
-  // generate a random subject ID that contains 8 alphanumeric characters
-  var rand_subject_id = jsPsych.randomization.randomID(8);
-  // add the ID to the data for all trials
-  jsPsych.data.addProperties({ID: rand_subject_id});
-
   const session_length = 48;
   const train_length = 4 * session_length;
   const test_length = session_length; // used separately for each test set (so total test is 2 * test_length)
@@ -73,11 +68,17 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     timeline: timeline,
     show_progress_bar: true,
     override_safe_mode: true,
+    use_webaudio: false,
     on_finish: function() {
       var file_name = rand_subject_id + '_data.csv';
       jsPsych.data.get().localSave('csv',file_name);
     },
   }); 
+
+  // generate a random subject ID that contains 8 alphanumeric characters
+  var rand_subject_id = jsPsych.randomization.randomID(8);
+  // add the ID to the data for all trials
+  jsPsych.data.addProperties({ID: rand_subject_id});
 
   var timeline = [];
 
@@ -85,24 +86,28 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   timeline.push({
     type: PreloadPlugin,
     images: assetPaths.images,
+    audio: assetPaths.audio,
+    video: assetPaths.video
   }); 
 
-    // Stimuli  
+  // Stimuli  
 
-    // Load the subjects
+  // Load the subjects
+
+  var options = [];
 
   function get_sub(graph) {
     if (graph == 1) {
-      options = ['s03', 's04', 's11', 's12', 's20']; 
+      options.push('s03', 's04', 's11', 's12', 's20'); 
     } else if (graph == 2) {
-      options = ['s05', 's13', 's14', 's15', 's21'];
+      options.push('s05', 's13', 's14', 's15', 's21');
     } else if (graph == 3) {
-      options = ['s07', 's08', 's16', 's17', 's22'];
+      options.push('s07', 's08', 's16', 's17', 's22');
     } else {
-      options = ['s09', 's10', 's18', 's19', 's23'];
+      options.push('s09', 's10', 's18', 's19', 's23');
     }
 
-    subject = options[Math.floor(Math.random() * options.length)];
+    var subject = options[Math.floor(Math.random() * options.length)];
 
     return subject;
 
