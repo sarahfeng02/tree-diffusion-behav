@@ -142,7 +142,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     const graph_test_options = graphs.filter(item => item !== graph_train); 
     const graph_test1 = graph_test_options[Math.floor(Math.random() * graph_test_options.length)];
     const sub_test1 = get_sub(graph_test1);
-    const sub_test1_path = `assets/all_info/${graph_test1}/${sub_test1}_info.csv`;
+    const sub_test1_path = `assets/all_info/${sub_test1}/${sub_test1}_info.csv`;
     const sub_test1_csv = await loadcsv(sub_test1_path);
     const order_test1 = sub_test1_csv.map(row => row["order"]);
     const relation_test1 = sub_test1_csv.map(row => row["relation"]);
@@ -165,7 +165,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     const graph_test_options_small = graph_test_options.filter(item => item !== graph_test1);
     const graph_test2 = graph_test_options_small[Math.floor(Math.random() * graph_test_options_small.length)];
     const sub_test2 = get_sub(graph_test2);
-    const sub_test2_path = `assets/all_info/${graph_test2}/${sub_test2}_info.csv`;
+    const sub_test2_path = `assets/all_info/${sub_test2}/${sub_test2}_info.csv`;
     const sub_test2_csv = await loadcsv(sub_test2_path);
     const order_test2 = sub_test2_csv.map(row => row["order"]);
     const relation_test2 = sub_test2_csv.map(row => row["relation"]);
@@ -273,9 +273,11 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Main procedure
 
+  var all_stim = meg_train.concat(meg_test);
+
   var main_procedure = {
     timeline: [infTrial, probeTrial],
-    timeline_variables: [meg_train, meg_test],
+    timeline_variables: all_stim,
   };
   timeline.push(main_procedure);
 
