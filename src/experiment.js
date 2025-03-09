@@ -67,6 +67,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   var jsPsych = initJsPsych({
     timeline: timeline,
     show_progress_bar: true,
+    minimum_valid_rt: 50,
     override_safe_mode: true,
     use_webaudio: false,
     on_finish: function() {
@@ -278,16 +279,18 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   var main_procedure = {
     timeline: [infTrial, probeTrial],
     timeline_variables: all_stim,
+    sample: { type: 'sequential' },
+    repetitions: 1
   };
   timeline.push(main_procedure);
 
   // Run the experiment
 
-  await jsPsych.run(timeline);
-  // jsPsych.run(timeline);
+  // await jsPsych.run(timeline);
+  jsPsych.run(timeline);
 
   // Return the jsPsych instance so jsPsych Builder can access the experiment results (remove this
   // if you handle results yourself, be it here or in `on_finish()`)
-  return jsPsych;
+  // return jsPsych;
 
 }
