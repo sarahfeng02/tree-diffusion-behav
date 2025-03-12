@@ -7,9 +7,8 @@
  */
 
 
-// Alter this according to where you placed the assets folder:
-
-const assets_dir = '/Users/sarahfeng/Library/CloudStorage/Box-Box/comp-inf-assets';
+// Make sure you downloaded the 'comp-inf-assets' folder, renamed it to 'assets', and moved it inside 'tree-diffusion-behav'! 
+// Otherwise this code will not work.
 
 // You can import stylesheets (.scss or .css).
 import "../styles/main.scss";
@@ -138,7 +137,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
     const graph_train = graphs[Math.floor(Math.random() * graphs.length)];
     const sub_train = get_sub(graph_train);
-    const sub_train_path = `${assets_dir}/all_info/${sub_train}/${sub_train}_info.csv`;
+    const sub_train_path = `assets/all_info/${sub_train}/${sub_train}_info.csv`;
     const sub_train_csv = await loadcsv(sub_train_path);
     const order_train = sub_train_csv.map(row => row["order"]);
     const relation_train = sub_train_csv.map(row => row["relation"]);
@@ -150,10 +149,10 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     for (let i = 0; i < train_length; i++) {
       meg_train.push({
         trial: i,
-        inference: `${assets_dir}/graph${graph_train}/inference/${order_train[i]}.png`,
-        probe: `${assets_dir}/graph${graph_train}/probe/${sub_train}/${i+1}.png`,
-        inference: `${assets_dir}/graph${graph_train}/inference/${order_train[i]}.png`,
-        probe: `${assets_dir}/graph${graph_train}/probe/${sub_train}/${i+1}.png`,
+        inference: `assets/graph${graph_train}/inference/${order_train[i]}.png`,
+        probe: `assets/graph${graph_train}/probe/${sub_train}/${i+1}.png`,
+        inference: `assets/graph${graph_train}/inference/${order_train[i]}.png`,
+        probe: `assets/graph${graph_train}/probe/${sub_train}/${i+1}.png`,
         correct_response: relation_train[i]
       });
     }
@@ -165,7 +164,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     const graph_test_options = graphs.filter(item => item !== graph_train); 
     const graph_test1 = graph_test_options[Math.floor(Math.random() * graph_test_options.length)];
     const sub_test1 = get_sub(graph_test1);
-    const sub_test1_path = `${assets_dir}/all_info/${sub_test1}/${sub_test1}_info.csv`;
+    const sub_test1_path = `assets/all_info/${sub_test1}/${sub_test1}_info.csv`;
     const sub_test1_csv = await loadcsv(sub_test1_path);
     const order_test1 = sub_test1_csv.map(row => row["order"]);
     const relation_test1 = sub_test1_csv.map(row => row["relation"]);
@@ -177,8 +176,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     for (let i = 0; i < test_length; i++) {
       meg_test.push({
         trial: train_length + i,
-        inference: `${assets_dir}/graph${graph_test1}/inference/${order_test1[i]}.png`,
-        probe: `${assets_dir}/graph${graph_test1}/probe/${sub_test1}/${i+1}.png`,
+        inference: `assets/graph${graph_test1}/inference/${order_test1[i]}.png`,
+        probe: `assets/graph${graph_test1}/probe/${sub_test1}/${i+1}.png`,
         correct_response: relation_test1[i]
       })
     }
