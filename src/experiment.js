@@ -6,6 +6,11 @@
  * @assets assets/
  */
 
+
+// Alter this according to where you placed the assets folder:
+
+const assets_dir = '/Users/sarahfeng/Library/CloudStorage/Box-Box/comp-inf-assets';
+
 // You can import stylesheets (.scss or .css).
 import "../styles/main.scss";
 
@@ -51,6 +56,20 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     }
   }
   */
+
+  function rel_id(action) {
+    if (action == 'ArrowLeft') {
+      return 1;
+    } else if (action == 'ArrowUp') {
+      return 2;
+    } else if (action == 'ArrowRight') {
+      return 3;
+    } else if (action == 'ArrowDown') {
+      return 4;
+    } else {
+      return 5;
+    }
+  }
   
   // Initialize, load stimuli
 
@@ -67,6 +86,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   var jsPsych = initJsPsych({
     timeline: timeline,
     show_progress_bar: true,
+    default_iti: 500,
     minimum_valid_rt: 50,
     override_safe_mode: true,
     use_webaudio: false,
@@ -118,7 +138,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
     const graph_train = graphs[Math.floor(Math.random() * graphs.length)];
     const sub_train = get_sub(graph_train);
-    const sub_train_path = `assets/all_info/${sub_train}/${sub_train}_info.csv`;
+    const sub_train_path = `${assets_dir}/all_info/${sub_train}/${sub_train}_info.csv`;
     const sub_train_csv = await loadcsv(sub_train_path);
     const order_train = sub_train_csv.map(row => row["order"]);
     const relation_train = sub_train_csv.map(row => row["relation"]);
@@ -130,8 +150,10 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     for (let i = 0; i < train_length; i++) {
       meg_train.push({
         trial: i,
-        inference: `assets/graph${graph_train}/inference/${order_train[i]}.png`,
-        probe: `assets/graph${graph_train}/probe/${sub_train}/${i+1}.png`,
+        inference: `${assets_dir}/graph${graph_train}/inference/${order_train[i]}.png`,
+        probe: `${assets_dir}/graph${graph_train}/probe/${sub_train}/${i+1}.png`,
+        inference: `${assets_dir}/graph${graph_train}/inference/${order_train[i]}.png`,
+        probe: `${assets_dir}/graph${graph_train}/probe/${sub_train}/${i+1}.png`,
         correct_response: relation_train[i]
       });
     }
@@ -143,7 +165,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     const graph_test_options = graphs.filter(item => item !== graph_train); 
     const graph_test1 = graph_test_options[Math.floor(Math.random() * graph_test_options.length)];
     const sub_test1 = get_sub(graph_test1);
-    const sub_test1_path = `assets/all_info/${sub_test1}/${sub_test1}_info.csv`;
+    const sub_test1_path = `${assets_dir}/all_info/${sub_test1}/${sub_test1}_info.csv`;
     const sub_test1_csv = await loadcsv(sub_test1_path);
     const order_test1 = sub_test1_csv.map(row => row["order"]);
     const relation_test1 = sub_test1_csv.map(row => row["relation"]);
@@ -155,11 +177,13 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     for (let i = 0; i < test_length; i++) {
       meg_test.push({
         trial: train_length + i,
-        inference: `assets/graph${graph_test1}/inference/${order_test1[i]}.png`,
-        probe: `assets/graph${graph_test1}/probe/${sub_test1}/${i+1}.png`,
+        inference: `${assets_dir}/graph${graph_test1}/inference/${order_test1[i]}.png`,
+        probe: `${assets_dir}/graph${graph_test1}/probe/${sub_test1}/${i+1}.png`,
         correct_response: relation_test1[i]
       })
     }
+
+    /* 
 
     // Test #2
 
@@ -183,6 +207,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         correct_response: relation_test2[i]
       })
     }
+
+    */
 
   // Start of script! 
 
@@ -248,41 +274,123 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         type: 'inference',
         trial: jsPsych.timelineVariable('trial'),
     },
-    on_finish: function(data) {
-      console.log('inf done!');
-      console.log(trial_dur);
-    }
   };
 
   // Probe trial
-
+      
   var probeTrial = {
-    type: ImageButtonResponsePlugin,
-    stimulus: jsPsych.timelineVariable('probe'),
+    type: HtmlKeyboardResponsePlugin,
+    stimulus: function() {
+      let probe = jsPsych.timelineVariable('probe');
+
+      return `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="${probe}" alt="probe stimulus" style="max-width: 600px; max-height: 600px;">
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 10px;">
+          <button id="btn-up" class="response-btn">On-top</button>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+          <button id="btn-left" class="response-btn">Left</button>
+          <button id="btn-right"class="response-btn">Right</button>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+          <button id="btn-down" class="response-btn">Below</button>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 30px; margin-top: 10px;">
+          <button id="dnc" class="response-btn">Did not connect</button>
+        </div>
+      `;
+    },
     trial_duration: trial_dur,
-    choices: ['Above', 'Below', 'To the left of', 'To the right of', 'Did not connect'],
+    response_ends_trial: false,
+    choices: ['ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp', ' '],
     data: {
         type: 'probe',
         trial: jsPsych.timelineVariable('trial'),
         correct_response: jsPsych.timelineVariable('correct_response'),
     },
+
     on_finish: function(data) {
-      console.log('probe done!');
-      console.log(trial_dur);
+      console.log('on finish');
+
+      let keyMapping = {
+        "arrowup": "btn-up",
+        "arrowleft": "btn-left",
+        "arrowright": "btn-right",
+        "arrowdown": "btn-down",
+        " ": "dnc",
+      };
+
+      if (data.response == null) {
+        console.log('no choice made');
+
+        data.correct = false;
+        data.timeout = true;
+      } else {
+        console.log('response made: ', data.response);
+        console.log('mapped button id: ', keyMapping[data.response]);
+
+        data.timeout = false;
+
+        setTimeout(function() {
+          var selectedButton = document.getElementById(keyMapping[data.response]);
+          console.log('selected button: ', selectedButton);
+          console.log('data correct response: ', data.correct_response);
+          if (selectedButton) {
+            let isCorrect = jsPsych.pluginAPI.compareKeys(rel_id(data.response), data.correct_response);
+            selectedButton.style.backgroundColor = isCorrect ? 'green' : 'red';
+            data.correct = isCorrect; 
+            if (isCorrect) {
+              console.log('correct choice!');
+            } else {
+              console.log('incorrect choice!');
+            }}
+          }, 100);
+
+          jsPsych.pluginAPI.setTimeout(function() {
+            jsPsych.finishTrial(data);
+          },1000);
+      }
+    },
+    post_trial_gap: 1000,
+  };
+
+  // Timeout screen
+
+  var timeout = {
+    type: HtmlKeyboardResponsePlugin,
+    stimulus: "<p style='font-size: 24px; color: red;'>Time-out</p>",
+    choices: "NO_KEYS",
+    trial_duration: 1000
+  };
+
+  var probeTrialFeedback = {
+    timeline: [timeout],
+    conditional_function: function() {
+      var lastTrialData = jsPsych.data.get().last(1).values()[0];
+      return lastTrialData.timeout == true;
     }
   };
 
   // Main procedure
 
-  var all_stim = meg_train.concat(meg_test);
-
-  var main_procedure = {
-    timeline: [infTrial, probeTrial],
-    timeline_variables: all_stim,
-    sample: { type: 'sequential' },
-    repetitions: 1
+  var train_procedure = {
+    timeline: [infTrial, probeTrial, probeTrialFeedback],
+    timeline_variables: meg_train,
   };
-  timeline.push(main_procedure);
+
+  var test_procedure = {
+    timeline: [infTrial, probeTrial],
+    timeline_variables: meg_test,
+  };
+
+  timeline.push(train_procedure);
+  timeline.push(test_procedure);
 
   // Run the experiment
 
@@ -291,6 +399,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Return the jsPsych instance so jsPsych Builder can access the experiment results (remove this
   // if you handle results yourself, be it here or in `on_finish()`)
-  // return jsPsych;
+
+  return jsPsych;
 
 }
