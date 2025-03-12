@@ -22,11 +22,12 @@ In *src/experiment.js*, there is the actual experiment code.
 
 After downloading the repository:
 
-1. Use `cd` to get to the directory so that you are currently inside of `tree-diffusion-behav`.
-2. Run `npm run build`.
-3. Run `npm start`.
-4. You can then access the experiment via the link that the terminal will give you on your browser.
-5. The data will be saved to your local desktop.
+1. At the top of `src/experiment.js`, replace the constant `assets_dir` with your local file path to where you have downloaded the assets folder for this experiment from Box.
+2. Use `cd` to get to the directory so that you are currently inside of `tree-diffusion-behav`.
+3. Run `npm run build`.
+4. Run `npm start`.
+5. You can then access the experiment via the link that the terminal will give you on your browser.
+6. The data will be saved to your local desktop.
 
    
 
