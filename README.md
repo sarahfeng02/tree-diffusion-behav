@@ -18,12 +18,14 @@ The `src/experiment.js` file contains the experiment code; the `styles/main.scss
 
 After downloading the repository:
 
-1. At the top of `src/experiment.js`, replace the constant `assets_dir` with your local file path to where you have downloaded the assets folder for this experiment from Box.
-2. Use `cd` to get to the directory so that you are currently inside of `tree-diffusion-behav`.
-3. Run `npm run build`.
-4. Run `npm start`.
-5. You can then access the experiment via the link that the terminal will give you on your browser.
-6. The data will be saved to your local desktop.
+1. Download the assets folder, `comp-inf-assets`, from Box.
+2. Rename it `assets`.
+3. Move it into your `tree-diffusion-behav` root directory.
+5. On your terminal, use `cd` to get to the directory so that you are currently inside of `tree-diffusion-behav`.
+6. Run `npm run build`.
+7. Run `npm start`.
+8. You can then access the experiment via the link that the terminal will give you on your browser.
+9. The data will be saved to your local desktop.
 
    
 
