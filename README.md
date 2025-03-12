@@ -4,19 +4,15 @@ This is the behavioral code for a jsPsych experiment collecting human behavioral
 
 ## About the task
 
-In this task, participants are shown silhouettes composed of 3 building blocks. They will then be shown images of 2 of the blocks and asked to respond about their relationship (1 of 4 options: above, below, to the left of, or to the right of). 
+In the training phase of this task, participants are shown silhouettes composed of 3 building blocks. They will then be shown images of 2 of the blocks and asked to respond about their relationship (1 of 5 options: on-top, below, left, right, or do not connect). These correspond to the up-arrow key, down-arrow key, left-arrow key, right-arrow key, and space bar. After the participant makes a response, the corresponding button lights up in green (for an accurate response) or red (for an inaccurate response). If they do not respond, they are shown a 1-second 'timeout screen.' There are 192 trials of training, in which they are shown one stimulus set, or 'graph.' This stimulus set contains 12 different silhouettes. They will be asked about relationships between different blocks inside the same silhouette in different ways. 
 
-The experiment begins with 192 trials of training, in which they are shown one stimulus set, or 'graph.' This stimulus set contains 12 different silhouettes. They will be asked about relationships between different blocks inside the same silhouette in different ways. They are then tested on 48 trials of a new stimulus set and then 48 trials of another new stimulus set. In total, there are 288 trials.
+In the testing phase of this task, participants see 48 more trials of a new stimulus set. They are no longer shown feedback. 
 
-Each silhouette is called a 'inference,' and each question regarding the two blocks is called an 'inference.' 
+Each silhouette is called a 'inference,' and each question regarding the two blocks is called an 'probe.' 
 
 ## Code structure
 
-In *assets/all_info*, each subject has their own folder, inside which is a CSV file containing information about their exact original trial structure from the 2023 experiment. This is to ensure that the ordering matches the original experiment. These were pulled from the Matlab files provided by Philip Schwartenbeck.
-
-In *assets/graph...*, each graph (the stimuli sets) has their own inferences and all of the different probes. The code randomly selects a graph for the participant and randomly chooses subjects who had that graph in the original experiment and then mirrors the exact trial structure. It uses this to load the different inferences and probes in different orders.
-
-In *src/experiment.js*, there is the actual experiment code.
+The `src/experiment.js` file contains the experiment code; the `styles/main.scss` file contains the CSS styling. All of the assets are located in a remote Box folder that must be downloaded. See below for notes on how to alter the assets directory variable to allow your machine to locate those files.
 
 ## Running the code
 
