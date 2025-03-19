@@ -6,21 +6,19 @@
  * @assets assets/
  */
 
-
-// Make sure you downloaded the 'comp-inf-assets' folder, renamed it to 'assets', and moved it inside 'tree-diffusion-behav'! 
-// Otherwise this code will not work.
-
 // You can import stylesheets (.scss or .css).
 import "../styles/main.scss";
 
+import { JsPsych } from "jspsych";
+import { initJsPsych } from "jspsych";
 import FullscreenPlugin from "@jspsych/plugin-fullscreen";
 import HtmlKeyboardResponsePlugin from "@jspsych/plugin-html-keyboard-response";
 import PreloadPlugin from "@jspsych/plugin-preload";
-import { initJsPsych } from "jspsych";
 import ImageKeyboardResponsePlugin from "@jspsych/plugin-image-keyboard-response";
 import SurveyMultiChoicePlugin from "@jspsych/plugin-survey-multi-choice";
 import ImageButtonResponsePlugin from "@jspsych/plugin-image-button-response";
 import Papa from "papaparse";
+import HtmlButtonFeedbackPlugin from './plugin/button-feedback.js';
 
 /**
  * This function will be executed by jsPsych Builder and is expected to run the jsPsych experiment
@@ -276,87 +274,18 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   };
 
   // Probe trial
-      
+  
   var probeTrial = {
-    type: HtmlKeyboardResponsePlugin,
+    type: HtmlButtonFeedbackPlugin,
     stimulus: function() {
-      let probe = jsPsych.timelineVariable('probe');
-
-      return `
-        <div style="text-align: center; margin-bottom: 20px;">
-          <img src="${probe}" alt="probe stimulus" style="max-width: 600px; max-height: 600px;">
-        </div>
-
-        <div style="display: flex; justify-content: center; gap: 10px;">
-          <button id="btn-up" class="response-btn">On-top</button>
-        </div>
-
-        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-          <button id="btn-left" class="response-btn">Left</button>
-          <button id="btn-right"class="response-btn">Right</button>
-        </div>
-
-        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-          <button id="btn-down" class="response-btn">Below</button>
-        </div>
-
-        <div style="display: flex; justify-content: center; gap: 30px; margin-top: 10px;">
-          <button id="dnc" class="response-btn">Did not connect</button>
-        </div>
-      `;
+      return jsPsych.timelineVariable('probe');
     },
-    trial_duration: trial_dur,
-    response_ends_trial: false,
-    choices: ['ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp', ' '],
-    data: {
-        type: 'probe',
-        trial: jsPsych.timelineVariable('trial'),
-        correct_response: jsPsych.timelineVariable('correct_response'),
-    },
-
+    correct_response: jsPsych.timelineVariable('correct_response'),
+    trial_duration: 6000,
+    feedback_duration: 1000,
     on_finish: function(data) {
-      console.log('on finish');
-
-      let keyMapping = {
-        "arrowup": "btn-up",
-        "arrowleft": "btn-left",
-        "arrowright": "btn-right",
-        "arrowdown": "btn-down",
-        " ": "dnc",
-      };
-
-      if (data.response == null) {
-        console.log('no choice made');
-
-        data.correct = false;
-        data.timeout = true;
-      } else {
-        console.log('response made: ', data.response);
-        console.log('mapped button id: ', keyMapping[data.response]);
-
-        data.timeout = false;
-
-        setTimeout(function() {
-          var selectedButton = document.getElementById(keyMapping[data.response]);
-          console.log('selected button: ', selectedButton);
-          console.log('data correct response: ', data.correct_response);
-          if (selectedButton) {
-            let isCorrect = jsPsych.pluginAPI.compareKeys(rel_id(data.response), data.correct_response);
-            selectedButton.style.backgroundColor = isCorrect ? 'green' : 'red';
-            data.correct = isCorrect; 
-            if (isCorrect) {
-              console.log('correct choice!');
-            } else {
-              console.log('incorrect choice!');
-            }}
-          }, 100);
-
-          jsPsych.pluginAPI.setTimeout(function() {
-            jsPsych.finishTrial(data);
-          },1000);
-      }
-    },
-    post_trial_gap: 1000,
+      data.timeout = !data.response_made
+    }
   };
 
   // Timeout screen
