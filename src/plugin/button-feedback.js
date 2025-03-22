@@ -22,7 +22,7 @@ const info = {
       default: ["ArrowUp", "ArrowLeft", "ArrowRight", "ArrowDown", " "],
       description: "These are the keys that the user is allowed to press."
     },
-    correct_response: {
+    correct_relation: {
       type: ParameterType.INT,
       default: null,
       description: "This is the correct answer (the actual relation)."
@@ -41,7 +41,8 @@ const info = {
 };
 
 /**
- * **{HtmlButtonFeedbackPlugin}
+ * @author Sarah Feng
+ * @see {@link https://github.com/sarahfeng02/tree-diffusion-behav}
  */
 
 class HtmlButtonFeedbackPlugin {
@@ -95,20 +96,20 @@ class HtmlButtonFeedbackPlugin {
     // map response to relation ID to compare with correct response
     let relation_ans;
     if (key === 'arrowup') {
-      relation_ans = 2;
+      relation_ans = 'above';
     } else if (key === 'arrowleft') {
-      relation_ans = 1;
+      relation_ans = 'left';
     } else if (key === 'arrowright') {
-      relation_ans = 3;
+      relation_ans = 'right';
     } else if (key === 'arrowdown') {
-      relation_ans = 4;
+      relation_ans = 'below';
     } else if (key === ' ') {
-      relation_ans = 5;
+      relation_ans = 'notConnected';
     }
     console.log('key ', key, ' relation ans ', relation_ans);
 
     // compare to see if the response is correct
-    let is_correct = relation_ans === trial.correct_response;
+    let is_correct = relation_ans === trial.correct_relation;
     console.log('correct?', is_correct);
 
     // providing visual feedback
@@ -128,7 +129,8 @@ class HtmlButtonFeedbackPlugin {
       setTimeout(() => {
         this.jsPsych.finishTrial({
           rt: rt,
-          response: key,
+          response_key: key,
+          ans_relation: relation_ans,
           correct: is_correct,
           response_made: true
         })
@@ -140,7 +142,8 @@ class HtmlButtonFeedbackPlugin {
   handle_timeout() {
     this.jsPsych.finishTrial({
       rt: null,
-      response: null,
+      response_key: null,
+      ans_relation: null,
       correct: null,
       response_made: false
     })
