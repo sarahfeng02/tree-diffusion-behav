@@ -32,7 +32,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   // Deifning constants
   var timeline = []; // Empty timeline
   const trial_dur = 6000; // Trial duration in milliseconds
-  var rand_subject_id = jsPsych.randomization.randomID(8); // generate a random subject ID that contains 8 alphanumeric characters
   let currentDate = new Date(); // for file timestamp
 
   const csvUrl = "https://yale.box.com/v/cncl-comp-inf-assets/block_relationships.csv";
@@ -163,9 +162,10 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     experimentVersion: version,
     practiceGraph: practiceGraph,
     trainingtestingGraph: trainGraph,
-    ID: rand_subject_id
   });
-
+  var rand_subject_id = jsPsych.randomization.randomID(8); // generate a random subject ID that contains 8 alphanumeric characters
+  jsPsych.data.addProperties({ID: rand_subject_id});
+  
   // Preload assets
   timeline.push({
     type: PreloadPlugin,
