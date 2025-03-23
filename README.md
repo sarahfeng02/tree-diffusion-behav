@@ -12,17 +12,19 @@ In the testing phase of this task, participants see 48 more trials of the same s
 
 The `src/experiment.js` file contains the experiment code; the `styles/main.scss` file contains the CSS styling. All of the assets are located in a remote Box folder that must be downloaded. See below for notes on how to alter the assets directory variable to allow your machine to locate those files.
 
-All of the assets are loaded remotely from https://yale.box.com/v/cncl-comp-inf-assets. 
+All of the assets reside in https://yale.box.com/v/cncl-comp-inf-assets. 
 
 ## Running the code
 
 To run the code on a local machine, downloading the repository and follow these steps:
 
-1. On your terminal, use `cd` to get to the directory so that you are currently inside of `tree-diffusion-behav`.
-2. Run `npm run build`.
-3. Run `npm start`.
-4. You can then access the experiment via the link that the terminal will give you on your browser.
-5. The data will be saved to your local desktop.
+1. Download this repository.
+2. Go to [the Box folder](https://yale.box.com/v/cncl-comp-inf-assets) and download the directory. Name it `assets` and move it into this repository. 
+3. On the command line, use `cd` to get to the directory so that you are currently inside of `tree-diffusion-behav`.
+4. Run `npm run build`.
+5. Run `npm start`.
+6. You can then access the experiment via the link that the terminal will give you on your browser.
+7. The data will be saved to your local desktop.
 
    
 
