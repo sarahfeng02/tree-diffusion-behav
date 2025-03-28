@@ -20,6 +20,10 @@ rm assets.zip
 
 echo "Setup complete. Folder is now named 'assets'."
 
+# Make executable
+
+chmod +x startup.sh
+
 # Run
 
 npm run build
