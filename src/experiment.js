@@ -20,6 +20,7 @@ import SurveyMultiChoicePlugin from "@jspsych/plugin-survey-multi-choice";
 import ImageButtonResponsePlugin from "@jspsych/plugin-image-button-response";
 import Papa from "papaparse";
 import HtmlButtonFeedbackPlugin from './plugin/button-feedback.js';
+import instructions from '@jspsych/plugin-instructions';
 
 /**
  * This function will be executed by jsPsych Builder and is expected to run the jsPsych experiment
@@ -42,8 +43,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
                       "assets/materials/block3.png"]
 
   let blockRelationships = []; // Store parsed CSV data
-  // let allImages = new Set(); // Store unique image file paths
-  // imgPractice.forEach(img => allImages.add(img)); // Add the images of the individual blocks
 
   // Helper function to fetch and parse CSV
   async function loadCSV(url) {
@@ -182,7 +181,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   // Preload assets
   timeline.push({
     type: PreloadPlugin,
-    // images: [...assetPaths.images, ...Array.from(allImages)], // Include dynamically generated image paths
     images: assetPaths.images,
     audio: assetPaths.audio,
     video: assetPaths.video
@@ -215,6 +213,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     trial_duration: 6000,
     feedback_duration: 1000,
     on_finish: function(data) {
+      console.log('data from trial ', data)
       data.timeout = !data.response_made
     }
   };
@@ -240,8 +239,11 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Welcome screen
   timeline.push({
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: "<p>Welcome to the experiment! Press any key to begin.<p/>",
+    type: instructions,
+    pages: [      
+      'Welcome to the experiment.<br>First, we are going to ask you some demographics questions.',      
+      ],        
+      show_clickable_nav: true     
   });
    
   // Demographics
@@ -267,25 +269,32 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     ],
   });
 
-  // Practice instructions
+  // Switch to fullscreen
   timeline.push({
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `
-        <p><strong>Welcome to the experiment.</strong></p>
-        <p>In this experiment, you will be asked to infer the underlying structure behind a silhouette.</p>
-        <p>The silhouette will be made up of 3 of the 4 shapes below. You will see the silhouette for <strong>6 seconds</strong>.</p>
-        <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">
-          <img src=${imgPractice[0]} alt="Block 4" width="90" height="30">
-          <img src=${imgPractice[1]} alt="Block 1" width="50" height="50">
-          <img src=${imgPractice[2]} alt="Block 2" width="50" height="50">
-          <img src=${imgPractice[3]} alt="Block 3" width="30" height="90">
-        </div>
-        <p>They will be in any relation to one another: above, below, to the left of, to the right of, or not connected to each other.</p>
-        <p>You will then be shown 2 of the 3 blocks in the image and asked to select the relationship <strong>with respect to the block in the top left</strong>. You will see this question for <strong>6 seconds</strong>.</p> 
-        <p><em>In the question screen, you will be shown 2 blocks. It is very important that you remember to answer with respect to the left block.</em></p>
-        <p>We will first start with a few practice rounds.</p>
-        <p>Press any key to try it out.</p>
-    `,
+    type: FullscreenPlugin,
+    fullscreen_mode: true,
+  });
+
+  timeline.push({
+    type: instructions,
+    pages: [
+        'In this experiment, you will be inferring the underlying structure behind a silhouette.<br>' + 
+        'You will first be shown a silhouette made up of 3 building blocks for 6 seconds.',
+        'The 3 blocks that make up the silhouette will be taken from the 4 options below:<br><br>' +
+        '<div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">' +
+        `<img src=${imgPractice[0]} alt="Block 4" width="90" height="30">` +
+        `<img src=${imgPractice[1]} alt="Block 1" width="50" height="50">` +
+        `<img src=${imgPractice[2]} alt="Block 2" width="50" height="50">` +
+        `<img src=${imgPractice[3]} alt="Block 3" width="30" height="90"></div>`, 
+        'Each block will be above, below, to the left of, to the right of, or not connecting with each other block.<br>' +
+        'As you look at the silhouette, try to imagine each of these relationships.', 
+        'You will then be asked about 2 of the 3 blocks shown in the silhouette, and asked to select the relationship between them.<br>',
+        'You must answer <strong>with respect to the left block.</strong><br>',
+        'You will have <strong>6 seconds</strong> to look at the silhouette and <strong>6 seconds</strong> to answer the question about the 2 blocks.<br>' +
+        'Please try to make your best guess within the allotted time frame, even if you are not sure.<br>' +
+        'We will first start with a few practice rounds.'
+      ],
+      show_clickable_nav: true      
     });
   
   // Practice procedure
@@ -297,25 +306,16 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Practice transition
   timeline.push({
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `
-        <p>You have now completed the practice. Please remember that:</p>
-        <p><strong>1. You are trying to infer which blocks make up the silhouette and what relations they are in.</strong></p>
-        <p><strong>2. When asked about 2 blocks, you are answering with respect to the left block.</strong></p>
-        <p><strong>3. You have 6 seconds to look at the silhouette and 6 seconds to respond to the question.</strong></p>
-        <p>i.e. is the center block above, below, to the right of, to the left of, or not-connecting with the left block?</p>
-        <p>For this part of the experiment, you will be given feedback to know if you are right or wrong. Try to always make your best guess, even if you do not know.</p>
-        <p>Press any key to begin the experiment.</p>
-    `,
+    type: instructions,
+    pages: [
+      'You have now completed the practice.<br>' +
+      'Remember to answer with respect to the block on the left.<br>' +
+      'Click below to begin the experiment.'
+    ],
+    show_clickable_nav: true,
     });
 
   // Training session
-
-  // Switch to fullscreen
-  timeline.push({
-    type: FullscreenPlugin,
-    fullscreen_mode: true,
-  });
 
   var train_procedure = {
     timeline: [infTrial, probeTrial, probeTrialFeedback],
@@ -324,17 +324,18 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   timeline.push(train_procedure);
 
   // Training transition
-  timeline.push({
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `
-        <p>You have now completed the first part of the experiment.</p>
-        <p>In the following part of the experiment, you will be completing the same task.</p>
-        <p>However, you will not be shown any feedback.</p>
-        <p><strong>Please try your best to answer within the time frame of 6 seconds, even if you do not know.</strong></p>
-        <p>Press any key to continue.</p>
-    `,
-    });
-
+    timeline.push({
+      type: instructions,
+      pages: [
+        'You have now completed the first part of the experiment.<br>' +
+        'In the next part, you will no longer be shown any feedback.<br>' +
+        'Please try to make your best guess within the time frame of 6 seconds.<br>' +
+        'Press any key to proceed.'
+      ],
+      show_clickable_nav: true,
+      });
+  
+  // Testing procedure
   var test_procedure = {
     timeline: [infTrial, probeTrial],
     timeline_variables: testSession,
@@ -343,11 +344,13 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Testing transition
   timeline.push({
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: `
-        <p>You have now completed the experiment!</p>
-        <p>Thank you for contributing to our science. Your data will help us understand human cognition and memory.</p>
-    `,
+    type: instructions,
+    pages: [
+      'You have now completed the experiment.<br>' +
+      'Thank you for contributing to our science.<br>' +
+      'Your data will help us understand human cognition and memory.'
+    ],
+    show_clickable_nav: true,
     });
 
   // Run the experiment
