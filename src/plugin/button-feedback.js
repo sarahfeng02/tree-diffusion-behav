@@ -1,8 +1,5 @@
 import { JsPsych, JsPsychPlugin, ParameterType } from "jspsych";
 
-// var globalname = (function(jspsych) {
-//  "use strict";
-
 const info = {
   name: "button-feedback",
   version: "1.0.0",
@@ -49,6 +46,7 @@ class HtmlButtonFeedbackPlugin {
 
   constructor(jsPsych) {
     this.jsPsych = jsPsych;
+    this.response_made = false; // default until a response is made
   }
 
   trial(display_element, trial) {
@@ -83,6 +81,8 @@ class HtmlButtonFeedbackPlugin {
       persist: false
     });
 
+    console.log('listener set up');
+
     // timeout if there is no response made
     this.timeout_id = setTimeout(() => {
       this.handle_timeout();
@@ -90,8 +90,6 @@ class HtmlButtonFeedbackPlugin {
   }
 
   handle_key_response(key, trial, rt) {
-    // tracks if a response has been made yet
-    let response_made = false;
 
     // map response to relation ID to compare with correct response
     let relation_ans;
@@ -117,7 +115,7 @@ class HtmlButtonFeedbackPlugin {
     // if there was a key response, change color and then wait 1000ms
     if (button) {
       console.log('button ', button);
-      response_made = true;
+      this.response_made = true;
 
       if (is_correct) {
         button.style.backgroundColor = 'lightgreen';
@@ -126,13 +124,15 @@ class HtmlButtonFeedbackPlugin {
       }
       button.style.fontWeight = 'bold';
 
+      console.log('response made? ', this.response_made);
+      
       setTimeout(() => {
         this.jsPsych.finishTrial({
           rt: rt,
           response_key: key,
           ans_relation: relation_ans,
           correct: is_correct,
-          response_made: true
+          response_made: this.response_made
         })
       }, trial.feedback_duration);
     }  
