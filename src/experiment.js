@@ -1,7 +1,7 @@
 /**
  * @title Compositional_Inference
  * @description This is a jsPsych experiment designed to collect human behavioral data on visual inference on silhouettes. This is based off of Schwartenbeck et al. 2023.
- * @version 0.1.1
+ * @version 0.1.2
  * @environment JavaScript
  *
  * @assets assets/
@@ -210,28 +210,11 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       return jsPsych.timelineVariable('probe');
     },
     correct_relation: jsPsych.timelineVariable('correct_relation'),
-    trial_duration: 6000,
+    trial_duration: 1000000,
     feedback_duration: 1000,
     on_finish: function(data) {
       console.log('data from trial ', data)
       data.timeout = !data.response_made
-    }
-  };
-
-  // Timeout screen
-
-  var timeout = {
-    type: HtmlKeyboardResponsePlugin,
-    stimulus: "<p style='font-size: 24px; color: red;'>Time-out</p>",
-    choices: "NO_KEYS",
-    trial_duration: 1000
-  };
-
-  var probeTrialFeedback = {
-    timeline: [timeout],
-    conditional_function: function() {
-      var lastTrialData = jsPsych.data.get().last(1).values()[0];
-      return lastTrialData.timeout == true;
     }
   };
 
@@ -241,11 +224,51 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   timeline.push({
     type: instructions,
     pages: [      
-      'Welcome to the experiment.<br>First, we are going to ask you some demographics questions.',      
+      'Welcome to the experiment.',      
       ],        
       show_clickable_nav: true     
   });
-   
+
+  // IRB approval
+  timeline.push({
+    type: instructions,
+    pages: [
+        `<h1>Psychology Experiment</h1>
+        <h2>Informed Consent Form</h2>
+        <hr />
+        <div class="legal well">
+            <p><b>Purpose:</b> We are conducting research on how we make inferences about the structures underlying our visual environments.</p>
+            <p><b>Brief description:</b> In this experiment, you will make judgments about the relationships of blocks inside silhouettes. In total, we think making these judgments will take less than 50 minutes to complete.</p>
+            <p><b>Procedures:</b> For each judgment, you will see an image of a silhouette, and your job is to make judgments about the relationships between the blocks that make up that silhouette. You will receive _____/hour upon completing the experiment.</p>
+            <p><b>Risks and Benefits:</b> Completing this task poses no more risk of harm to you than do the experiences of everyday life (e.g., from working on a computer). Although this study will not benefit you personally, we hope it will contribute to the advancement of our understanding of the human mind.</p>
+            <p><b>Confidentiality:</b> All of the responses you provide during this study will be anonymous. You will not be asked to provide any identifying information, such as your name, in any of the questionnaires. Typically, only the researchers involved in this study and those responsible for research oversight will have access to the information you provide. However, we may also share the data with other researchers so that they can check the accuracy of our conclusions; this will not impact you because the data are anonymous.</p>
+            <p>The researcher will not know your name, and no identifying information will be connected to your survey answers in any way. However, your account is associated with an Amazon Mechanical Turk number that the researcher has to be able to see in order to pay you, and in some cases these numbers are associated with public profiles which could, in theory, be searched. For this reason, though the researcher will not be looking at anyone’s public profiles, the fact of your participation in the research (as opposed to your actual survey responses) is technically considered “confidential” rather than truly anonymous.</p>
+            <p><b>Voluntary Participation:</b> Your participation in this study is voluntary. You are free to decline to participate, to end your participation at any time for any reason, or to refuse to answer any individual question.</p>
+            <p><b>Questions:</b> If you have any questions about this study, you may contact Ilker Yildirim at ilker.yildirim@yale.edu. If you would like to talk with someone other than the researchers to discuss problems or concerns, to discuss situations in the event that a member of the research team is not available, or to discuss your rights as a research participant, you may contact, and mention HSC number 2000025930:</p>
+            <center>
+                <dl>
+                    <dd> Yale University Human Subjects Committee</dd>
+                    <dd> Box 208010, New Haven, CT 06520-8010</dd>
+                    <dd> (203) 785-4688; human.subjects@yale.edu</dd>
+                </dl>
+            </center>
+            <p>Additional information is available <a href="https://your.yale.edu/research-support/human-research/research-participants" target="_blank">here</a>.</p>
+            <p><b>Agreement to participate:</b> By clicking the "Begin" button below, you acknowledge that you have read the above information and agree to participate in the study. You must be at least 18 years of age to participate; agreeing to participate confirms you are 18 years of age or older.</p>
+            <center>
+                <p><input type="checkbox" id="consent_checkbox"/> I agree to take part in this study.</p>
+            </center>
+        </div>`,
+    ],
+    show_clickable_nav: true,
+    on_finish: function() {
+        const consentChecked = document.getElementById("consent_checkbox").checked;
+        if (!consentChecked) {
+            alert("You must agree to participate before proceeding.");
+            jsPsych.endCurrentTimeline(); // Stops experiment if checkbox is not checked
+        }
+    }
+  });
+
   // Demographics
   timeline.push({
     type: SurveyMultiChoicePlugin,
@@ -288,18 +311,89 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         `<img src=${imgPractice[3]} alt="Block 3" width="30" height="90"></div>`, 
         'Each block will be above, below, to the left of, to the right of, or not connecting with each other block.<br>' +
         'As you look at the silhouette, try to imagine each of these relationships.', 
-        'You will then be asked about 2 of the 3 blocks shown in the silhouette, and asked to select the relationship between them.<br>',
+        'You will then be asked about 2 of the 3 blocks shown in the silhouette, and asked to select the relationship between them.<br>' +
         'You must answer <strong>with respect to the left block.</strong><br>',
-        'You will have <strong>6 seconds</strong> to look at the silhouette and <strong>6 seconds</strong> to answer the question about the 2 blocks.<br>' +
-        'Please try to make your best guess within the allotted time frame, even if you are not sure.<br>' +
-        'We will first start with a few practice rounds.'
+        'You will have <strong>6 seconds</strong> to look at the silhouette before you will be given a question about 2 of the blocks.<br>' +
+        'Please try to make your best guess within the allotted time frame, even if you are not sure.<br>',
+        'We will first start with a quiz to test your understanding of the task.<br>' +
+        'You must get all of the questions correct to continue with the experiment.<br>',
       ],
       show_clickable_nav: true      
     });
+
+  // Quiz for understanding
+  const quiz = {
+    type: SurveyMultiChoicePlugin,
+    data: {quiz: "quiz"}, 
+    questions: [
+        {
+            prompt: "You will be selecting the relation with respect to the ____ block.",
+            options: ["Left", "Right"],
+            correct: "Left",
+            required: true,
+        },
+        {
+            prompt: "Which of the following is not a possible relation?",
+            options: ["Above", "Below", "To the left of", "To the right of", "Did not connect", "All of these are possible relations"],
+            correct: "All of these are possible relations",
+            required: true,
+        },
+        {
+          prompt: "How many seconds will you have to look at the silhouette?",
+          options: ["4000 ms", "5000 ms", "6000 ms", "7000 ms"],
+          correct: "6000 ms",
+          required: true,
+      }
+    ],
+    randomize_question_order: true,
+
+    // Check correctness of answers
+    on_finish: function(data) {
+        const responses = data.response;
+        let correct_count = 0;
+        let feedback = "<h2>Feedback</h2><ul>";
+
+        quiz.questions.forEach((q, i) => {
+            let user_answer = responses[`Q${i}`];
+            let is_correct = user_answer === q.correct;
+            if (is_correct) correct_count++;
+            feedback += `<li>${i+1}. <em>${q.prompt}</em>: you answered <strong>${user_answer}</strong> ${is_correct ? "✔️" : "❌"}</li>`;
+        });
+
+        // Display feedback and wait 6 seconds for user to read it
+        feedback += `</ul><p>You got ${correct_count} out of ${quiz.questions.length} correct.</p>`;
+        jsPsych.getDisplayElement().innerHTML = feedback;
+
+        jsPsych.pauseExperiment();
+        setTimeout(() => {
+          jsPsych.resumeExperiment(); // Resume after 6000 ms
+      }, 6000);
+
+    }
+  };
+
+  // Loop node to make the user repeat the survey if they can't get them all correct
+  const quiz_loop_node = {
+    timeline: [quiz],
+    loop_function: function(data) {
+        let last_trial_data = data.values()[0];
+        let responses = last_trial_data.response;
+        let correct_count = 0;
+        
+        quiz.questions.forEach((q, i) => {
+            if (responses[`Q${i}`] === q.correct) {
+                correct_count++;
+            }
+        });
+  
+        return correct_count !== quiz.questions.length;
+    }
+  };
+  timeline.push(quiz_loop_node);
   
   // Practice procedure
   var practice_procedure = {
-    timeline: [infTrial, probeTrial, probeTrialFeedback],
+    timeline: [infTrial, probeTrial],
     timeline_variables: practiceSession,
   };
   timeline.push(practice_procedure);
@@ -318,7 +412,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   // Training session
 
   var train_procedure = {
-    timeline: [infTrial, probeTrial, probeTrialFeedback],
+    timeline: [infTrial, probeTrial],
     timeline_variables: trainSession,
   };
   timeline.push(train_procedure);
@@ -329,7 +423,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       pages: [
         'You have now completed the first part of the experiment.<br>' +
         'In the next part, you will no longer be shown any feedback.<br>' +
-        'Please try to make your best guess within the time frame of 6 seconds.<br>' +
+        'Please try to make your best guess.<br>' +
         'Press any key to proceed.'
       ],
       show_clickable_nav: true,
