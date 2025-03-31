@@ -16,20 +16,10 @@ All of the assets reside in https://yale.box.com/v/cncl-comp-inf-assets.
 
 ## Running the code
 
-To set up automatically: 
-
 1. Download this repository.
-2. Using CLI, run `startup.sh.`
-
-To set up manually:
-
-1. Download this repository.
-2. Go to [the Box folder](https://yale.box.com/v/cncl-comp-inf-assets) and download the directory. Name it `assets` and move it into this repository.
-3. Using CLI, use `cd` to get to the directory so that you are currently inside of `tree-diffusion-behav`.
-4. Run `npm run build`.
-5. Run `npm start`.
-6. You can then access the experiment via the link that the terminal will give you on your browser.
-7. The data will be saved to your local desktop.
+2. On terminal, `cd` into the repository.
+3. Run the following command to make the start-up script executable: `chmod a+x startup.sh.`
+4. Run `startup.sh.`
 
    
 
