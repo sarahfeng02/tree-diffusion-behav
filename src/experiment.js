@@ -1,7 +1,7 @@
 /**
  * @title Compositional_Inference
  * @description This is a jsPsych experiment designed to collect human behavioral data on visual inference on silhouettes. This is based off of Schwartenbeck et al. 2023.
- * @version 0.1.3
+ * @version 0.1.4
  * @environment JavaScript
  *
  * @assets assets/
@@ -37,10 +37,18 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   const csvUrl = "assets/block_relationships.csv";
   const imgBaseUrl = "assets";
-  const imgPractice = ["assets/materials/stable.png",
+  const imgBlock = ["assets/materials/stable.png",
                       "assets/materials/block1.png",
                       "assets/materials/block2.png",
                       "assets/materials/block3.png"]
+  const instructionsColor = ["assets/instructions/instruction1_color.png",
+                            "assets/instructions/instruction2_color.png",
+                            "assets/instructions/instruction3_color.png"]
+  const instructionsSilhouette = ["assets/instructions/instruction1_silhouette.png",
+                              "assets/instructions/instruction2_silhouette.png",
+                              "assets/instructions/instruction3_silhouette.png"]
+  const instructionsQuestion = ["assets/instructions/instruction2_question.png",
+                                "assets/instructions/instruction2_buttons.png"]                
 
   let blockRelationships = []; // Store parsed CSV data
 
@@ -73,9 +81,18 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Select two random graphs from available graphs in CSV
   function selectRandomGraphs() {
-      let graphs = [...new Set(blockRelationships.map(row => row.graph))];
-      let shuffled = graphs.sort(() => Math.random() - 0.5);
-      return { practiceGraph: shuffled[0], trainGraph: shuffled[1] };
+    let graphs = [...new Set(
+      blockRelationships
+        .map(row => row.graph)
+        .filter(graph => graph !== undefined && graph !== null && graph !== '')
+    )];
+  
+    if (graphs.length < 2) {
+      throw new Error("Not enough valid graphs found: " + JSON.stringify(graphs));
+    }
+  
+    let shuffled = graphs.sort(() => Math.random() - 0.5);
+    return { practiceGraph: shuffled[0], trainGraph: shuffled[1] };
   }
 
   // Load CSV data
@@ -274,20 +291,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     }
   });
 
-  // Demographics
-  timeline.push({
-    type: SurveyMultiChoicePlugin,
-    data: {demographics: "demographics"}, // storing data in demographics category
-    questions: [
-        {
-            prompt: "What is your sex?",
-            name: "sex_q",
-            options: ['female', 'male', 'other', 'prefer not to answer'],
-            required: true
-        }
-    ],
-  });
-
   // Switch to fullscreen
   timeline.push({
     type: FullscreenPlugin,
@@ -298,23 +301,71 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const instruction_block = {
     type: instructions,
     pages: [
-      'In this experiment, you will be inferring the underlying structure behind a silhouette.<br>' + 
-      'You will first be shown a silhouette made up of 3 building blocks for 6 seconds.',
-      'The 3 blocks that make up the silhouette will be taken from the 4 options below:<br><br>' +
-      '<div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px;">' +
-      `<img src=${imgPractice[0]} alt="Block 4" width="90" height="30">` +
-      `<img src=${imgPractice[1]} alt="Block 1" width="50" height="50">` +
-      `<img src=${imgPractice[2]} alt="Block 2" width="50" height="50">` +
-      `<img src=${imgPractice[3]} alt="Block 3" width="30" height="90"></div>`, 
-      'Each block will be above, below, to the left of, to the right of, or not connecting with each other block.<br>' +
-      'As you look at the silhouette, try to imagine each of these relationships.', 
-      'You will then be asked about 2 of the 3 blocks shown in the silhouette, and asked to select the relationship between them.<br>' +
-      'You must answer <strong>with respect to the left block.</strong><br>',
-      'You will have <strong>6 seconds</strong> to look at the silhouette before you will be given a question about 2 of the blocks.<br>' +
-      'Please try to make your best guess, even if you are not sure.<br>',
-      'We will first start with a quiz to test your understanding of the task.<br>' +
-      'You must get all of the questions correct to continue with the experiment.<br>' +
-      'Otherwise, you will be shown the instructions again.',
+      // Building blocks
+      `<h2>Instructions</h2><br><br>` +
+      'In this experiment, you will be seeing compositions made out of several building blocks.<br>' + 
+      'These are the four blocks that you will be working with.<br>' +
+      '<div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px; margin-bottom: 20px;">' +
+        `<img src=${imgBlock[0]} alt="Block 4" width="180" height="60">` +
+        `<img src=${imgBlock[1]} alt="Block 1" width="100" height="100">` +
+        `<img src=${imgBlock[2]} alt="Block 2" width="100" height="100">` +
+        `<img src=${imgBlock[3]} alt="Block 3" width="60" height="180">` +
+      '</div><br>', 
+
+      // Example constructions and silhouettes
+      'You will be seeing any 3 of these 4 blocks at a time, placed into a composition.<br>' +
+      'No block will be repeated, i.e. exist twice in the same composition.<br>' +
+      'Here are some examples of compositions.<br>' +
+      '<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">' +
+        `<img src=${instructionsColor[0]} alt="Sample Composition #1" width="200" height="200">` +
+        `<img src=${instructionsColor[1]} alt="Sample Composition #2" width="200" height="200">` +
+        `<img src=${instructionsColor[2]} alt="Sample Composiion #3" width="200" height="200">` +
+      '</div>' +
+      '<br>Importantly, you will not see these compositions in full color. Instead, what you will see is their silhouette form.<br>' +
+      'Here are what those constructions will look like in their corresponding silhouette forms.<br>' +
+      '<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">' +
+        `<img src=${instructionsSilhouette[0]} alt="Sample Composition #1" width="200" height="200">` +
+        `<img src=${instructionsSilhouette[1]} alt="Sample Composition #2" width="200" height="200">` +
+        `<img src=${instructionsSilhouette[2]} alt="Sample Composiion #3" width="200" height="200">` +
+      '</div><br>',
+
+      // Possible relations between any given pair of parts
+      'When the blocks are in the composition, each pair of blocks will have a relationship with one another.<br>' +
+      'For example, consider this composition.<br>' +
+      `<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">` +
+      `<img src=${instructionsColor[0]} alt="Sample Composition #1" width="200" height="200"></div>` +
+      '<br>Now consider the following blocks that are a part of this composition.<br>' +
+      `<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">` +
+        `<img src=${imgBlock[0]} alt="Block 4" width="180" height="60">` + 
+        `<img src=${imgBlock[2]} alt="Block 2" width="100" height="100">` +
+        `<img src=${imgBlock[3]} alt="Block 3" width="60" height="180">` +
+      '</div>' +
+      '<br>They are in the following relationships.<br>' +
+      'The stone block is <strong>to the left of</strong> the brick block.<br>' +
+      'The brick block is <strong>to the right of</strong> the stone block.<br>' +
+      'The steel block is <strong>above</strong> the brick block.<br>' +
+      'The brick block is <strong>below</strong> the steel block.<br>' +
+      'The stone block is <strong>not connected to</strong> the steel block, and vice versa.<br><br>' +
+      '<em>To the left of, to the right of, above,</em> and </em>below</em> <strong>only apply</strong> if the blocks are touching one another.<br>' +
+      'Otherwise, they count as <em>do not connect</em>.<br><br>',
+
+      // Introduction to the task itself
+      'In this task, you will first be shown a black silhouette of a composition for 6 seconds.<br><br>' +
+      `<img src=${instructionsSilhouette[1]} alt="Sample Composition #2" width="200" height="200">` +
+      '<br><br>You will then be shown an image with 2 blocks: one in the upper left, and one in the middle. For example:<br><br>' +
+      `<img src=${instructionsQuestion[0]} alt="Sample Question #2" width="400" height="400">` +
+      '<br><br>Both of these blocks were in the composition. It is your task to identify the relationship they were in to the best of your ability.<br>' +
+      'You must answer <strong>with respect to the left block.</strong><br>' +
+      'In this example, the correct answer would be <strong>to the left of</strong>, because the brick block is to the left of the steel block.<br>' +
+      'You can imagine the upper left block in any of the corresponding locations surrounding the middle block.<br><br>',
+
+      // Instructions pt. 2
+      'In order to make a response, please use the following key mappings to respond:<br><br>' +
+      `<img src=${instructionsQuestion[1]} alt="Sample Buttons" width="400" height="400">` +
+      '<br><br>Please make your best guess, even if you are not certain.<br>' +
+      'For the first part of the experiment, you will be shown feedback immediately about whether or not your choice was correct.<br><br>' +
+      'We will first start with a quiz to test your understanding of the task.<br>If you get all the questions correct, you can proceed to the practice trials.<br>' +
+      'Otherwise, you will be shown the instructions again.<br><br>',
     ],
     show_clickable_nav: true
   };
@@ -371,8 +422,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const instruction_transition = {
     type: instructions,
     pages: [
-      'Great job. You have answered all the quiz questions correctly.<br>' +
-      'You may now proceed to the practice trials.',
+      'Great job! You have answered all the quiz questions correctly.<br>' +
+      'You may now proceed to the practice trials.<br><br>',
     ],
     show_clickable_nav: true
   };
@@ -390,8 +441,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     type: instructions,
     pages: [
       'You have now completed the practice.<br>' +
-      'Remember to answer with respect to the block on the left.<br>' +
-      'Click below to begin the experiment.'
+      'Click below to begin the experiment.<br><br>'
     ],
     show_clickable_nav: true,
     });
@@ -409,7 +459,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       pages: [
         'You have now completed the first part of the experiment.<br>' +
         'In the next part, you will no longer be shown any feedback.<br>' +
-        'Please try to make your best guess.<br>',
+        'Please try to make your best guess.<br><br>',
       ],
       show_clickable_nav: true,
       });
