@@ -18,8 +18,8 @@ All of the assets reside in https://yale.box.com/v/cncl-comp-inf-assets.
 
 1. Download this repository.
 2. On terminal, `cd` into the repository.
-3. Run the following command to make the start-up script executable: `chmod a+x startup.sh.`
-4. Run `startup.sh.`
+3. Download the assets folder from Box and place it inside this repository, naming it `assets`.
+4. Run `npm run build` and `npm start`.
 
    
 
