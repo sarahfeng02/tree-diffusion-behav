@@ -74,14 +74,14 @@ class HtmlButtonFeedbackPlugin {
     // set up a keyboard event to respond only to the spacebar
     this.jsPsych.pluginAPI.getKeyboardResponse({
       callback_function: (info) => {
-        console.log('callback function called');
+        // console.log('callback function called');
         this.handle_key_response(info.key, trial, info.rt);
       },
       valid_responses: trial.choices,
       persist: false
     });
 
-    console.log('listener set up');
+    // console.log('listener set up');
 
     // timeout if there is no response made
     this.timeout_id = setTimeout(() => {
@@ -104,17 +104,17 @@ class HtmlButtonFeedbackPlugin {
     } else if (key === ' ') {
       relation_ans = 'notConnected';
     }
-    console.log('key ', key, ' relation ans ', relation_ans);
+    // console.log('key ', key, ' relation ans ', relation_ans);
 
     // compare to see if the response is correct
     let is_correct = relation_ans === trial.correct_relation;
-    console.log('correct?', is_correct);
+    // console.log('correct?', is_correct);
 
     // providing visual feedback
     let button = document.getElementById(key);
     // if there was a key response, change color and then wait 1000ms
     if (button) {
-      console.log('button ', button);
+      // console.log('button ', button);
       this.response_made = true;
 
       if (is_correct) {
@@ -124,7 +124,7 @@ class HtmlButtonFeedbackPlugin {
       }
       button.style.fontWeight = 'bold';
 
-      console.log('response made? ', this.response_made);
+      // console.log('response made? ', this.response_made);
       
       setTimeout(() => {
         this.jsPsych.finishTrial({
