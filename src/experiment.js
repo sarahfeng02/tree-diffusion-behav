@@ -48,7 +48,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
                               "assets/instructions/instruction2_silhouette.png",
                               "assets/instructions/instruction3_silhouette.png"]
   const instructionsQuestion = ["assets/instructions/instruction2_question.png",
-                                "assets/instructions/instruction2_buttons.png"]                
+                                "assets/instructions/instruction2_buttons.png",
+                                "assets/instructions/instruction1_question.png"]                
 
   let blockRelationships = []; // Store parsed CSV data
 
@@ -110,7 +111,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // **Setup Practice Graph**
   let practiceSession = [];
-  let practiceStimuli = stimuli.sort(() => Math.random() - 0.5).slice(0, 3);
+  let practiceStimuli = stimuli.sort(() => Math.random() - 0.5).slice(0, 10);
   for (let stim of practiceStimuli) {
       let row = blockRelationships.find(r => r.graph === practiceGraph && r.stimulus == stim);
       if (row) {
@@ -125,13 +126,14 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   }
 
   // **Setup Train Graph (4 training sessions)**
-  let trainSession = [];
+  let trainTrials = [];
+
   for (let session = 1; session <= 4; session++) {
       for (let stim of stimuli) {
           let rows = blockRelationships.filter(r => 
-            r.graph === trainGraph && 
-            r.stimulus == stim && 
-            (r.block_ID_1 === "stable" || r.block_ID_2 === "stable") // Only choose training probes
+              r.graph === trainGraph && 
+              r.stimulus == stim && 
+              (r.block_ID_1 === "stable" || r.block_ID_2 === "stable") // Only choose training probes
           ); 
           let shuffledRows = rows.sort(() => Math.random() - 0.5);
           let selectedRows = shuffledRows.slice(0, 4); // Pick 4 variations
@@ -142,19 +144,23 @@ export async function run({ assetPaths, input = {}, environment, title, version 
                   correct_relation: row.relationship,
                   trialType: "training"
               };
-              trainSession.push(trial);
+              trainTrials.push(trial);
           }
       }
   }
 
+  // 🔀 Global shuffle after all trials are collected
+  let trainSession = trainTrials.sort(() => Math.random() - 0.5);
+
   // **Setup Test Session**
-  let testSession = [];
+  let testTrials = [];
+
   for (let stim of stimuli) {
       let rows = blockRelationships.filter(r => 
-        r.graph === trainGraph && 
-        r.stimulus == stim && 
-        r.block_ID_1 !== "stable" && 
-        r.block_ID_2 !== "stable" // Only choose training probes
+          r.graph === trainGraph && 
+          r.stimulus == stim && 
+          r.block_ID_1 !== "stable" && 
+          r.block_ID_2 !== "stable" // Only choose testing probes (non-stable)
       );
       let shuffledRows = rows.sort(() => Math.random() - 0.5);
       let selectedRows = shuffledRows.slice(0, 2); // Each test probe appears twice
@@ -165,9 +171,12 @@ export async function run({ assetPaths, input = {}, environment, title, version 
               correct_relation: row.relationship,
               trialType: "testing"
           };
-          testSession.push(trial);
+          testTrials.push(trial);
       }
   }
+
+  // 🔀 Global shuffle after all test trials are created
+  let testSession = testTrials.sort(() => Math.random() - 0.5);
 
   console.log("Experiment setup complete!");
 
@@ -297,39 +306,89 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     fullscreen_mode: true,
   });
 
-  // Instructions
-  const instruction_block = {
+  // Instructions 1
+  const instructions_1 = {
     type: instructions,
     pages: [
-      // Building blocks
-      `<h2>Instructions</h2><br><br>` +
-      'In this experiment, you will be seeing compositions made out of several building blocks.<br>' + 
-      'These are the four blocks that you will be working with.<br>' +
-      '<div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px; margin-bottom: 20px;">' +
-        `<img src=${imgBlock[0]} alt="Block 4" width="180" height="60">` +
-        `<img src=${imgBlock[1]} alt="Block 1" width="100" height="100">` +
-        `<img src=${imgBlock[2]} alt="Block 2" width="100" height="100">` +
-        `<img src=${imgBlock[3]} alt="Block 3" width="60" height="180">` +
-      '</div><br>', 
+    // Building blocks
+    `<h2>Instructions</h2><br><br>` +
+    'We will now give you some instructions about this experiment.<br>' +
+    'After each instruction, you will be required to answer a quiz question correctly to move onto the following instruction.<br>' +
+    'Otherwise, you will automatically be shown the instruction again.<br><br>' +
+    'In this experiment, you will be seeing compositions made out of several building blocks.<br>' + 
+    'These are the four blocks that you will be working with.<br>' +
+    '<div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px; margin-bottom: 20px;">' +
+      `<img src=${imgBlock[0]} alt="Block 4" width="180" height="60">` +
+      `<img src=${imgBlock[1]} alt="Block 1" width="100" height="100">` +
+      `<img src=${imgBlock[2]} alt="Block 2" width="100" height="100">` +
+      `<img src=${imgBlock[3]} alt="Block 3" width="60" height="180">` +
+    '</div><br>', 
 
-      // Example constructions and silhouettes
-      'You will be seeing any 3 of these 4 blocks at a time, placed into a composition.<br>' +
-      'No block will be repeated, i.e. exist twice in the same composition.<br>' +
-      'Here are some examples of compositions.<br>' +
-      '<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">' +
-        `<img src=${instructionsColor[0]} alt="Sample Composition #1" width="200" height="200">` +
-        `<img src=${instructionsColor[1]} alt="Sample Composition #2" width="200" height="200">` +
-        `<img src=${instructionsColor[2]} alt="Sample Composiion #3" width="200" height="200">` +
-      '</div>' +
-      '<br>Importantly, you will not see these compositions in full color. Instead, what you will see is their silhouette form.<br>' +
-      'Here are what those constructions will look like in their corresponding silhouette forms.<br>' +
-      '<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">' +
-        `<img src=${instructionsSilhouette[0]} alt="Sample Composition #1" width="200" height="200">` +
-        `<img src=${instructionsSilhouette[1]} alt="Sample Composition #2" width="200" height="200">` +
-        `<img src=${instructionsSilhouette[2]} alt="Sample Composiion #3" width="200" height="200">` +
-      '</div><br>',
+    // Example constructions and silhouettes [How many blocks are in each silhouette?]
+    'You will be seeing any 3 of these 4 blocks at a time, placed into a composition.<br>' +
+    'No block will be repeated, i.e. exist twice in the same composition.<br>' +
+    'Here are some examples of compositions.<br>' +
+    '<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">' +
+      `<img src=${instructionsColor[0]} alt="Sample Composition #1" width="200" height="200">` +
+      `<img src=${instructionsColor[1]} alt="Sample Composition #2" width="200" height="200">` +
+      `<img src=${instructionsColor[2]} alt="Sample Composiion #3" width="200" height="200">` +
+    '</div>' +
+    '<br>Importantly, you will not see these compositions in full color. Instead, what you will see is their silhouette form.<br>' +
+    'Here are what those constructions will look like in their corresponding silhouette forms.<br>' +
+    '<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">' +
+      `<img src=${instructionsSilhouette[0]} alt="Sample Composition #1" width="200" height="200">` +
+      `<img src=${instructionsSilhouette[1]} alt="Sample Composition #2" width="200" height="200">` +
+      `<img src=${instructionsSilhouette[2]} alt="Sample Composiion #3" width="200" height="200">` +
+    '</div><br>',
+    ],
+    show_clickable_nav: true,
+  };
 
-      // Possible relations between any given pair of parts
+  const question_1 = {
+    type: SurveyMultiChoicePlugin,
+    data: { quiz: "quiz_1" },
+    questions: [
+      {
+        prompt: "How many blocks will be in each silhouette?",
+        options: ["2", "3", "4", "5"],
+        correct: "3",
+        required: true,
+      },
+    ],
+    randomize_question_order: false,
+  };
+
+  // Loop node to repeat instruction + quiz until correct
+  const loop_1 = {
+    timeline: [instructions_1, question_1],
+    loop_function: function(data) {
+      const last_trial = data.values().find(trial => trial.quiz === "quiz_1");
+  
+      if (!last_trial || !last_trial.response) return true; // repeat if broken
+  
+      const responses = last_trial.response;
+      const questions = question_1.questions;
+  
+      let correct_count = 0;
+      questions.forEach((q, idx) => {
+        const user_answer = responses[`Q${idx}`];
+        if (user_answer === q.correct) {
+          correct_count++;
+        }
+      });
+  
+      return correct_count !== questions.length; // repeat if not all are correct
+    }
+  };
+  
+  timeline.push(loop_1);
+  
+
+  // Instructions 2
+  const instructions_2 = {
+    type: instructions,
+    pages: [
+      // Possible relations between any given pair of parts [Which of the following is not a possible relation?]
       'When the blocks are in the composition, each pair of blocks will have a relationship with one another.<br>' +
       'For example, consider this composition.<br>' +
       `<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">` +
@@ -345,35 +404,69 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       'The brick block is <strong>to the right of</strong> the stone block.<br>' +
       'The steel block is <strong>above</strong> the brick block.<br>' +
       'The brick block is <strong>below</strong> the steel block.<br>' +
-      'The stone block is <strong>not connected to</strong> the steel block, and vice versa.<br><br>' +
-      '<em>To the left of, to the right of, above,</em> and </em>below</em> <strong>only apply</strong> if the blocks are touching one another.<br>' +
-      'Otherwise, they count as <em>do not connect</em>.<br><br>',
+      'The stone block is <strong>not connected to</strong> the steel block, and vice versa.<br><br>',
+    ],
+    show_clickable_nav: true,
+  };
+    
+  const question_2 = {
+    type: SurveyMultiChoicePlugin,
+    data: { quiz: "quiz_2" },
+    questions: [
+      {
+        prompt: "Which of the following is not a possible relation?",
+        options: ["Above", "Below", "To the left of", "To the right of", "Did not connect", "All of these are possible relations"],
+        correct: "All of these are possible relations",
+        required: true,
+      },
+    ],
+    randomize_question_order: false,
+  };
 
-      // Introduction to the task itself
+  // Loop node to repeat instruction + quiz until correct
+  const loop_2 = {
+    timeline: [instructions_2, question_2],
+    loop_function: function(data) {
+      const last_trial = data.values().find(trial => trial.quiz === "quiz_2");
+  
+      if (!last_trial || !last_trial.response) return true; // repeat if broken
+  
+      const responses = last_trial.response;
+      const questions = question_2.questions;
+  
+      let correct_count = 0;
+      questions.forEach((q, idx) => {
+        const user_answer = responses[`Q${idx}`];
+        if (user_answer === q.correct) {
+          correct_count++;
+        }
+      });
+  
+      return correct_count !== questions.length; // repeat if not all are correct
+    }
+  };
+  
+  timeline.push(loop_2);  
+
+  // Instructions 3
+  const instructions_3 = {
+    type: instructions,
+    pages: [
+      // The task itself [Which block are you responding with respect to? & How many seconds will you see the silhoeutte for?]
       'In this task, you will first be shown a black silhouette of a composition for 6 seconds.<br><br>' +
       `<img src=${instructionsSilhouette[1]} alt="Sample Composition #2" width="200" height="200">` +
       '<br><br>You will then be shown an image with 2 blocks: one in the upper left, and one in the middle. For example:<br><br>' +
       `<img src=${instructionsQuestion[0]} alt="Sample Question #2" width="400" height="400">` +
       '<br><br>Both of these blocks were in the composition. It is your task to identify the relationship they were in to the best of your ability.<br>' +
-      'You must answer <strong>with respect to the left block.</strong><br>' +
+      'You must answer <strong>with respect to the top left block.</strong><br>' +
       'In this example, the correct answer would be <strong>to the left of</strong>, because the brick block is to the left of the steel block.<br>' +
       'You can imagine the upper left block in any of the corresponding locations surrounding the middle block.<br><br>',
-
-      // Instructions pt. 2
-      'In order to make a response, please use the following key mappings to respond:<br><br>' +
-      `<img src=${instructionsQuestion[1]} alt="Sample Buttons" width="400" height="400">` +
-      '<br><br>Please make your best guess, even if you are not certain.<br>' +
-      'For the first part of the experiment, you will be shown feedback immediately about whether or not your choice was correct.<br><br>' +
-      'We will first start with a quiz to test your understanding of the task.<br>If you get all the questions correct, you can proceed to the practice trials.<br>' +
-      'Otherwise, you will be shown the instructions again.<br><br>',
-    ],
-    show_clickable_nav: true
+     ],
+    show_clickable_nav: true,
   };
-
-  // Quiz
-  const quiz = {
+  const question_3 = {
     type: SurveyMultiChoicePlugin,
-    data: { quiz: "quiz" }, 
+    data: { quiz: "quiz_3" },
     questions: [
       {
         prompt: "You will be selecting the relation with respect to the ____ block.",
@@ -382,39 +475,104 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         required: true,
       },
       {
-        prompt: "Which of the following is not a possible relation?",
-        options: ["Above", "Below", "To the left of", "To the right of", "Did not connect", "All of these are possible relations"],
-        correct: "All of these are possible relations",
-        required: true,
-      },
-      {
         prompt: "How many milliseconds will you have to look at the silhouette?",
         options: ["4000 ms", "5000 ms", "6000 ms", "7000 ms"],
         correct: "6000 ms",
         required: true,
-      }
+      },
     ],
-    randomize_question_order: true
+    randomize_question_order: false,
   };
   
-  // Loop node to make the user see the instructions again if they don't get them all right
-  const quiz_loop_node = {
-    timeline: [instruction_block, quiz],
+  // Loop node to repeat instruction + quiz until both are correct
+  const loop_3 = {
+    timeline: [instructions_3, question_3],
     loop_function: function(data) {
-      let last_trial_data = data.values().find(d => d.quiz === "quiz");
-      let responses = last_trial_data.response;
-      let correct_count = 0;
+      const last_trial = data.values().find(trial => trial.quiz === "quiz_3");
   
-      quiz.questions.forEach((q, i) => {
-        if (responses[`Q${i}`] === q.correct) {
+      if (!last_trial || !last_trial.response) return true; // repeat if broken
+  
+      const responses = last_trial.response;
+      const questions = question_3.questions;
+  
+      let correct_count = 0;
+      questions.forEach((q, idx) => {
+        const user_answer = responses[`Q${idx}`];
+        if (user_answer === q.correct) {
           correct_count++;
         }
       });
   
-      return correct_count !== quiz.questions.length;
+      // Only move on if both answers are correct
+      return correct_count !== questions.length;
     }
   };
-  timeline.push(quiz_loop_node);  
+  
+  timeline.push(loop_3);  
+
+  // Instructions 4
+  const instructions_4 = {
+    type: instructions,
+    pages: [
+      // Redundancies [If two blocks are in a certain relationship (to the left of, to the right of, above, or below) but they are not touching, you should answer 'do not connect.']
+      'Here is another example silhouette.<br><br>' +
+      `<img src=${instructionsSilhouette[0]} alt="Sample Composition #1" width="200" height="200">` +
+      '<br><br>You will then be shown the following question:<br><br>' +
+      `<img src=${instructionsQuestion[2]} alt="Sample Question #1" width="200" height="200">` +
+      '<br><br>You are answering with respect to the top left block.<br>' +
+      'The correct answer is <strong>to the right of</strong>.<br><br>' +
+      '<h2>Redundancies</h2><br>' +
+      'You may notice that some blocks are both to the left of, to the right of, above, or below one another, but they also do not connect with one another (i.e., they are in that relation but they do not touch each other.<br>' +
+      'In such a case, <strong>you must ignore the relation and answer <em>do not connect.</em></strong><br><br>', 
+
+      // Key mappings
+      'In order to make a response, please use the following key mappings to respond:<br><br>' +
+      `<img src=${instructionsQuestion[1]} alt="Sample Buttons" width="400" height="400">` +
+      '<br><br>Please make your best guess, even if you are not certain.<br>' +
+      'For the first part of the experiment, you will be shown feedback immediately about whether or not your choice was correct.<br><br>' +
+      'You will now be shown your final quiz question. If you get it correct, you will be shown practice trials.<br><br>',
+    ],
+    show_clickable_nav: true,
+  };
+    
+  const question_4 = {
+    type: SurveyMultiChoicePlugin,
+    data: { quiz: "quiz_4" },
+    questions: [
+      {
+        prompt: "If two blocks are in a certain relationship (to the left of, to the right of, above, or below) but they are not touching, you should answer 'do not connect.'",
+        options: ["True", "False"],
+        correct: "True",
+        required: true,
+      },
+    ],
+    randomize_question_order: false,
+  };
+
+  // Loop node to repeat instruction + quiz until correct
+  const loop_4 = {
+    timeline: [instructions_4, question_4],
+    loop_function: function(data) {
+      const last_trial = data.values().find(trial => trial.quiz === "quiz_4");
+  
+      if (!last_trial || !last_trial.response) return true; // repeat if broken
+  
+      const responses = last_trial.response;
+      const questions = question_4.questions;
+  
+      let correct_count = 0;
+      questions.forEach((q, idx) => {
+        const user_answer = responses[`Q${idx}`];
+        if (user_answer === q.correct) {
+          correct_count++;
+        }
+      });
+  
+      return correct_count !== questions.length; // repeat if not all correct
+    }
+  };
+  
+  timeline.push(loop_4);  
   
   // Practice procedure
 
@@ -446,6 +604,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     show_clickable_nav: true,
     });
 
+    
   // Training session
   var train_procedure = {
     timeline: [infTrial, probeTrial],
