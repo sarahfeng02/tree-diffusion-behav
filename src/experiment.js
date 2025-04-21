@@ -111,7 +111,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // **Setup Practice Graph**
   let practiceSession = [];
-  let practiceStimuli = stimuli.sort(() => Math.random() - 0.5).slice(0, 10);
+  // let practiceStimuli = stimuli.sort(() => Math.random() - 0.5).slice(0, 10);
+  let practiceStimuli = stimuli.slice(0, 10);
   for (let stim of practiceStimuli) {
       let row = blockRelationships.find(r => r.graph === practiceGraph && r.stimulus == stim);
       if (row) {
@@ -229,13 +230,19 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     trial_duration: trial_dur,
     choices: "NO_KEYS",
     data: {
-        type: 'inference'
+        type: 'inference',
+        exp_id: function() {
+          const stimulus = jsPsych.timelineVariable('inference');
+          // Extract the folder name before the filename
+          const parts = stimulus.split('/');
+          return parts[parts.length - 2];  // Gets the folder like '9'
+        }
     },
   };
 
-  // Probe trial
+  // Probe trial with feedback
   
-  var probeTrial = {
+  var probeTrialTrain = {
     type: HtmlButtonFeedbackPlugin,
     stimulus: function() {
       return jsPsych.timelineVariable('probe');
@@ -243,9 +250,49 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     correct_relation: jsPsych.timelineVariable('correct_relation'),
     trial_duration: 1000000,
     feedback_duration: 1000,
+    trial_type: "train",
+    on_finish: function(data) {
+      // console.log('data from trial ', data)
+      data.timeout = !data.response_made
+    },
+    data: {
+      type: 'probe_train',
+      expression_id: function() {
+        const stimulus = jsPsych.timelineVariable('probe');
+        // Extract the folder name before the filename
+        let parts = stimulus.split('/');
+        parts = parseInt(parts[parts.length - 2]);
+        return parts;  // Gets the folder like '9'
+      },
+      correct_relation: jsPsych.timelineVariable('correct_relation')
+    }
+  };
+
+  // Probe trial without feedback
+
+  var probeTrialTest = {
+    type: HtmlButtonFeedbackPlugin,
+    stimulus: function() {
+      return jsPsych.timelineVariable('probe');
+    },
+    correct_relation: jsPsych.timelineVariable('correct_relation'),
+    trial_duration: 1000000,
+    feedback_duration: 0,
+    trial_type: "test",
     on_finish: function(data) {
       console.log('data from trial ', data)
       data.timeout = !data.response_made
+    },
+    data: {
+      type: 'probe_test',
+      expression_id: function() {
+        const stimulus = jsPsych.timelineVariable('probe');
+        // Extract the folder name before the filename
+        let parts = stimulus.split('/');
+        parts = parseInt(parts[parts.length - 2]);
+        return parts;  // Gets the folder like '9'
+      },
+      correct_relation: jsPsych.timelineVariable('correct_relation')
     }
   };
 
@@ -268,7 +315,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         <h2>Informed Consent Form</h2>
         <hr />
         <div class="legal well">
-            <p><b>Purpose:</b> We are conducting research on how we make inferences about the structures underlying our visual environments.</p>
+            <p><b>Purpose:</b> We are conducting research on how we make inferences about the structures that make up our visual environments.</p>
             <p><b>Brief description:</b> In this experiment, you will make judgments about the relationships of blocks inside silhouettes. In total, we think making these judgments will take less than 50 minutes to complete.</p>
             <p><b>Procedures:</b> For each judgment, you will see an image of a silhouette, and your job is to make judgments about the relationships between the blocks that make up that silhouette.</p>
             <p><b>Risks and Benefits:</b> Completing this task poses no more risk of harm to you than do the experiences of everyday life (e.g., from working on a computer). Although this study will not benefit you personally, we hope it will contribute to the advancement of our understanding of the human mind.</p>
@@ -325,7 +372,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     '</div><br>', 
 
     // Example constructions and silhouettes [How many blocks are in each silhouette?]
-    'You will be seeing any 3 of these 4 blocks at a time, placed into a composition.<br>' +
+    '<h3>Compositions</h3><br>' +
+    'You will be seeing <strong>any 3 of these 4 blocks</strong> at a time, placed into a composition.<br>' +
     'No block will be repeated, i.e. exist twice in the same composition.<br>' +
     'Here are some examples of compositions.<br>' +
     '<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">' +
@@ -349,7 +397,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     data: { quiz: "quiz_1" },
     questions: [
       {
-        prompt: "How many blocks will be in each silhouette?",
+        prompt: "How many blocks will be in each composition at a time?",
         options: ["2", "3", "4", "5"],
         correct: "3",
         required: true,
@@ -389,6 +437,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     type: instructions,
     pages: [
       // Possible relations between any given pair of parts [Which of the following is not a possible relation?]
+      '<h3>Relations</h3><br>' +
       'When the blocks are in the composition, each pair of blocks will have a relationship with one another.<br>' +
       'For example, consider this composition.<br>' +
       `<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">` +
@@ -414,7 +463,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     data: { quiz: "quiz_2" },
     questions: [
       {
-        prompt: "Which of the following is not a possible relation?",
+        prompt: "Which of the following is not a possible relation in our compositions?",
         options: ["Above", "Below", "To the left of", "To the right of", "Did not connect", "All of these are possible relations"],
         correct: "All of these are possible relations",
         required: true,
@@ -453,11 +502,12 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     type: instructions,
     pages: [
       // The task itself [Which block are you responding with respect to? & How many seconds will you see the silhoeutte for?]
-      'In this task, you will first be shown a black silhouette of a composition for 6 seconds.<br><br>' +
+      '<h3>The task</h3><br>' +
+      'In this task, you will first be shown a black silhouette of a composition for <strong>6 seconds</strong>.<br><br>' +
       `<img src=${instructionsSilhouette[1]} alt="Sample Composition #2" width="200" height="200">` +
       '<br><br>You will then be shown an image with 2 blocks: one in the upper left, and one in the middle. For example:<br><br>' +
       `<img src=${instructionsQuestion[0]} alt="Sample Question #2" width="400" height="400">` +
-      '<br><br>Both of these blocks were in the composition. It is your task to identify the relationship they were in to the best of your ability.<br>' +
+      '<br>Both of these blocks were in the composition. It is your task to identify the relationship they were in to the best of your ability.<br>' +
       'You must answer <strong>with respect to the top left block.</strong><br>' +
       'In this example, the correct answer would be <strong>to the left of</strong>, because the brick block is to the left of the steel block.<br>' +
       'You can imagine the upper left block in any of the corresponding locations surrounding the middle block.<br><br>',
@@ -515,13 +565,14 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     type: instructions,
     pages: [
       // Redundancies [If two blocks are in a certain relationship (to the left of, to the right of, above, or below) but they are not touching, you should answer 'do not connect.']
+      '<h3>The task, cont.</h3><br>' +
       'Here is another example silhouette.<br><br>' +
       `<img src=${instructionsSilhouette[0]} alt="Sample Composition #1" width="200" height="200">` +
       '<br><br>You will then be shown the following question:<br><br>' +
       `<img src=${instructionsQuestion[2]} alt="Sample Question #1" width="200" height="200">` +
       '<br><br>You are answering with respect to the top left block.<br>' +
       'The correct answer is <strong>to the right of</strong>.<br><br>' +
-      '<h2>Redundancies</h2><br>' +
+      '<h3>Redundancies</h3><br>' +
       'You may notice that some blocks are both to the left of, to the right of, above, or below one another, but they also do not connect with one another (i.e., they are in that relation but they do not touch each other.<br>' +
       'In such a case, <strong>you must ignore the relation and answer <em>do not connect.</em></strong><br><br>', 
 
@@ -581,7 +632,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     type: instructions,
     pages: [
       'Great job! You have answered all the quiz questions correctly.<br>' +
-      'You may now proceed to the practice trials.<br><br>',
+      'You may now proceed to the practice trials.<br>' +
+      'You will see 10 practice trials before you start the experiment<br>',
     ],
     show_clickable_nav: true
   };
@@ -589,10 +641,11 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Practice procedure
   var practice_procedure = {
-    timeline: [infTrial, probeTrial],
+    timeline: [infTrial, probeTrialTrain],
     timeline_variables: practiceSession,
   };
   timeline.push(practice_procedure);
+
 
   // Practice transition
   timeline.push({
@@ -607,7 +660,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     
   // Training session
   var train_procedure = {
-    timeline: [infTrial, probeTrial],
+    timeline: [infTrial, probeTrialTrain],
     timeline_variables: trainSession,
   };
   timeline.push(train_procedure);
@@ -625,7 +678,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   
   // Testing procedure
   var test_procedure = {
-    timeline: [infTrial, probeTrial],
+    timeline: [infTrial, probeTrialTest],
     timeline_variables: testSession,
   };
   timeline.push(test_procedure);
@@ -635,8 +688,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     type: instructions,
     pages: [
       'You have now completed the experiment.<br>' +
-      'Thank you for contributing to our science.<br>' +
-      'Your data will help us understand human cognition and memory.'
+      'Thank you for contributing to science.<br>' +
+      'Your data will help us understand human cognition and inference.'
     ],
     show_clickable_nav: true,
     });
