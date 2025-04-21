@@ -2,7 +2,7 @@ import { JsPsych, JsPsychPlugin, ParameterType } from "jspsych";
 
 const info = {
   name: "button-feedback",
-  version: "1.0.0",
+  version: "1.1.0",
   parameters: {
     stimulus: {
       type: ParameterType.STRING,
@@ -20,7 +20,7 @@ const info = {
       description: "These are the keys that the user is allowed to press."
     },
     correct_relation: {
-      type: ParameterType.INT,
+      type: ParameterType.STRING,
       default: null,
       description: "This is the correct answer (the actual relation)."
     },
@@ -33,6 +33,11 @@ const info = {
       type: ParameterType.INT,
       default: 600,
       description: "This is the duration in ms that the trial goes overall if the user does not respond."
+    },
+    trial_type: {
+      type: ParameterType.STRING,
+      default: "train",
+      description: "Defines whether feedback is shown ('train') or skipped immediately ('test')."
     }
   },
 };
@@ -46,7 +51,7 @@ class HtmlButtonFeedbackPlugin {
 
   constructor(jsPsych) {
     this.jsPsych = jsPsych;
-    this.response_made = false; // default until a response is made
+    this.response_made = false;
   }
 
   trial(display_element, trial) {
@@ -71,17 +76,14 @@ class HtmlButtonFeedbackPlugin {
     `;
     display_element.innerHTML = htmlcontent;
 
-    // set up a keyboard event to respond only to the spacebar
+    // set up a keyboard event to respond
     this.jsPsych.pluginAPI.getKeyboardResponse({
       callback_function: (info) => {
-        // console.log('callback function called');
         this.handle_key_response(info.key, trial, info.rt);
       },
       valid_responses: trial.choices,
       persist: false
     });
-
-    // console.log('listener set up');
 
     // timeout if there is no response made
     this.timeout_id = setTimeout(() => {
@@ -90,33 +92,33 @@ class HtmlButtonFeedbackPlugin {
   }
 
   handle_key_response(key, trial, rt) {
+    clearTimeout(this.timeout_id); // cancel trial timeout when a response is made
 
-    // map response to relation ID to compare with correct response
     let relation_ans;
-    if (key === 'arrowup') {
-      relation_ans = 'above';
-    } else if (key === 'arrowleft') {
-      relation_ans = 'left';
-    } else if (key === 'arrowright') {
-      relation_ans = 'right';
-    } else if (key === 'arrowdown') {
-      relation_ans = 'below';
-    } else if (key === ' ') {
-      relation_ans = 'notConnected';
-    }
-    // console.log('key ', key, ' relation ans ', relation_ans);
+    if (key === 'arrowup') relation_ans = 'above';
+    else if (key === 'arrowleft') relation_ans = 'left';
+    else if (key === 'arrowright') relation_ans = 'right';
+    else if (key === 'arrowdown') relation_ans = 'below';
+    else if (key === ' ') relation_ans = 'notConnected';
 
-    // compare to see if the response is correct
     let is_correct = relation_ans === trial.correct_relation;
-    // console.log('correct?', is_correct);
+    this.response_made = true;
 
-    // providing visual feedback
+    // if trial type is "test", skip feedback and finish immediately
+    if (trial.trial_type === "test") {
+      this.jsPsych.finishTrial({
+        rt: rt,
+        response_key: key,
+        ans_relation: relation_ans,
+        correct: is_correct,
+        response_made: this.response_made
+      });
+      return;
+    }
+
+    // "train" trials: show feedback
     let button = document.getElementById(key);
-    // if there was a key response, change color and then wait 1000ms
     if (button) {
-      // console.log('button ', button);
-      this.response_made = true;
-
       if (is_correct) {
         button.style.backgroundColor = 'lightgreen';
       } else {
@@ -124,8 +126,6 @@ class HtmlButtonFeedbackPlugin {
       }
       button.style.fontWeight = 'bold';
 
-      // console.log('response made? ', this.response_made);
-      
       setTimeout(() => {
         this.jsPsych.finishTrial({
           rt: rt,
@@ -133,12 +133,11 @@ class HtmlButtonFeedbackPlugin {
           ans_relation: relation_ans,
           correct: is_correct,
           response_made: this.response_made
-        })
+        });
       }, trial.feedback_duration);
-    }  
+    }
   }
 
-  // if there is no response made
   handle_timeout() {
     this.jsPsych.finishTrial({
       rt: null,
@@ -146,7 +145,7 @@ class HtmlButtonFeedbackPlugin {
       ans_relation: null,
       correct: null,
       response_made: false
-    })
+    });
   }
 }
 
