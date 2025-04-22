@@ -29,8 +29,8 @@ import instructions from '@jspsych/plugin-instructions';
  */
 
 export async function run({ assetPaths, input = {}, environment, title, version }) {
-  
-  // Deifning constants
+
+  // Defining constants
   var timeline = []; // Empty timeline
   const trial_dur = 6000; // Trial duration in milliseconds
   let currentDate = new Date(); // for file timestamp
@@ -252,20 +252,35 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     feedback_duration: 1000,
     trial_type: "train",
     on_finish: function(data) {
-      // console.log('data from trial ', data)
+      console.log('data from trial ', data)
       data.timeout = !data.response_made
     },
     data: {
       type: 'probe_train',
       expression_id: function() {
         const stimulus = jsPsych.timelineVariable('probe');
-        // Extract the folder name before the filename
         let parts = stimulus.split('/');
         parts = parseInt(parts[parts.length - 2]);
-        return parts;  // Gets the folder like '9'
+        return parts;
       },
-      correct_relation: jsPsych.timelineVariable('correct_relation')
-    }
+      correct_relation: jsPsych.timelineVariable('correct_relation'),
+      block1_id: function() {
+        const filename = jsPsych.timelineVariable('probe');
+        const matches = filename.match(/(block\d|stable)_(block\d|stable)_/);
+        if (!matches) return null;
+    
+        const block1 = matches[1];
+        return block1 === 'stable' ? 4 : parseInt(block1.replace('block', ''));
+      },
+      block2_id: function() {
+        const filename = jsPsych.timelineVariable('probe');
+        const matches = filename.match(/(block\d|stable)_(block\d|stable)_/);
+        if (!matches) return null;
+    
+        const block2 = matches[2];
+        return block2 === 'stable' ? 4 : parseInt(block2.replace('block', ''));
+      }
+    }    
   };
 
   // Probe trial without feedback
@@ -284,16 +299,31 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       data.timeout = !data.response_made
     },
     data: {
-      type: 'probe_test',
+      type: 'probe_train',
       expression_id: function() {
         const stimulus = jsPsych.timelineVariable('probe');
-        // Extract the folder name before the filename
         let parts = stimulus.split('/');
         parts = parseInt(parts[parts.length - 2]);
-        return parts;  // Gets the folder like '9'
+        return parts;
       },
-      correct_relation: jsPsych.timelineVariable('correct_relation')
-    }
+      correct_relation: jsPsych.timelineVariable('correct_relation'),
+      block1_id: function() {
+        const filename = jsPsych.timelineVariable('probe');
+        const matches = filename.match(/(block\d|stable)_(block\d|stable)_/);
+        if (!matches) return null;
+    
+        const block1 = matches[1];
+        return block1 === 'stable' ? 4 : parseInt(block1.replace('block', ''));
+      },
+      block2_id: function() {
+        const filename = jsPsych.timelineVariable('probe');
+        const matches = filename.match(/(block\d|stable)_(block\d|stable)_/);
+        if (!matches) return null;
+    
+        const block2 = matches[2];
+        return block2 === 'stable' ? 4 : parseInt(block2.replace('block', ''));
+      }
+    }    
   };
 
   // Start of script! 
@@ -306,7 +336,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       ],        
       show_clickable_nav: true     
   });
-
+  
   // IRB approval
   timeline.push({
     type: instructions,
@@ -451,7 +481,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       '<br>They are in the following relationships.<br>' +
       'The stone block is <strong>to the left of</strong> the brick block.<br>' +
       'The brick block is <strong>to the right of</strong> the stone block.<br>' +
-      'The steel block is <strong>above</strong> the brick block.<br>' +
+      'The steel block is <strong>on top of</strong> the brick block.<br>' +
       'The brick block is <strong>below</strong> the steel block.<br>' +
       'The stone block is <strong>not connected to</strong> the steel block, and vice versa.<br><br>',
     ],
@@ -464,7 +494,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     questions: [
       {
         prompt: "Which of the following is not a possible relation in our compositions?",
-        options: ["Above", "Below", "To the left of", "To the right of", "Did not connect", "All of these are possible relations"],
+        options: ["On top of", "Below", "To the left of", "To the right of", "Did not connect", "All of these are possible relations"],
         correct: "All of these are possible relations",
         required: true,
       },
@@ -505,12 +535,13 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       '<h3>The task</h3><br>' +
       'In this task, you will first be shown a black silhouette of a composition for <strong>6 seconds</strong>.<br><br>' +
       `<img src=${instructionsSilhouette[1]} alt="Sample Composition #2" width="200" height="200">` +
-      '<br><br>You will then be shown an image with 2 blocks: one in the upper left, and one in the middle. For example:<br><br>' +
+      '<br><br>You will then be shown an image with 2 blocks: one in the upper left, and one in the middle for an <strong>unlimited amount of time</strong>. For example:<br><br>' +
       `<img src=${instructionsQuestion[0]} alt="Sample Question #2" width="400" height="400">` +
       '<br>Both of these blocks were in the composition. It is your task to identify the relationship they were in to the best of your ability.<br>' +
-      'You must answer <strong>with respect to the top left block.</strong><br>' +
+      'You must answer <strong>about the upper left block, in relation to the block in the middle.</strong><br>' +
       'In this example, the correct answer would be <strong>to the left of</strong>, because the brick block is to the left of the steel block.<br>' +
-      'You can imagine the upper left block in any of the corresponding locations surrounding the middle block.<br><br>',
+      'You can imagine the upper left block in any of the corresponding locations surrounding the middle block.<br>' +
+      'Please try to respond as fast as you can.<br><br>',
      ],
     show_clickable_nav: true,
   };
@@ -519,15 +550,21 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     data: { quiz: "quiz_3" },
     questions: [
       {
-        prompt: "You will be selecting the relation with respect to the ____ block.",
-        options: ["Left", "Right"],
-        correct: "Left",
+        prompt: "You will be selecting the relation about the ____ block in relation to the ____ block.",
+        options: ["Upper left, middle", "Middle, upper left"],
+        correct: "Upper left, middle",
         required: true,
       },
       {
-        prompt: "How many milliseconds will you have to look at the silhouette?",
-        options: ["4000 ms", "5000 ms", "6000 ms", "7000 ms"],
-        correct: "6000 ms",
+        prompt: "How many seconds will you have to look at the silhouette?",
+        options: ["4 s", "5 s", "6 s", "7 s"],
+        correct: "6 s",
+        required: true,
+      },
+      {
+        prompt: "How many seconds will you have to look at the image with the two blocks?",
+        options: ["4 s", "5 s", "6 s", "Unlimited"],
+        correct: "Unlimited",
         required: true,
       },
     ],
@@ -564,24 +601,29 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   const instructions_4 = {
     type: instructions,
     pages: [
-      // Redundancies [If two blocks are in a certain relationship (to the left of, to the right of, above, or below) but they are not touching, you should answer 'do not connect.']
+      // Task example #2
       '<h3>The task, cont.</h3><br>' +
       'Here is another example silhouette.<br><br>' +
       `<img src=${instructionsSilhouette[0]} alt="Sample Composition #1" width="200" height="200">` +
       '<br><br>You will then be shown the following question:<br><br>' +
       `<img src=${instructionsQuestion[2]} alt="Sample Question #1" width="200" height="200">` +
-      '<br><br>You are answering with respect to the top left block.<br>' +
-      'The correct answer is <strong>to the right of</strong>.<br><br>' +
+      '<br><br>Remember that you are answering <strong>about the top left block, in relation to the middle block</strong>.<br>' +
+      'The correct answer is <strong>to the right of</strong>.<br><br>',
+
+      // Redundancies [If two blocks are in a certain relationship (to the left of, to the right of, above, or below) but they are not touching, you should answer 'do not connect.']
       '<h3>Redundancies</h3><br>' +
-      'You may notice that some blocks are both to the left of, to the right of, above, or below one another, but they also do not connect with one another (i.e., they are in that relation but they do not touch each other.<br>' +
-      'In such a case, <strong>you must ignore the relation and answer <em>do not connect.</em></strong><br><br>', 
+      'Although some blocks may appear to be on top of, below, to the left of, or to the right of one another, we define <strong>do not connect</strong> as any case in which the blocks are not immediately adjacent to one another.<br>' +
+      'For example, you might be be imagining the following composition based on a silhouette:<br><br>' +
+      `<img src=${instructionsColor[0]} alt="Sample Composition #1" width="200" height="200">` +
+      '<br><br>In this example, even though the steel block is visually <strong>on top of</strong> and <strong>to the right of</strong> the stone block, they are not adjacent, so they <strong>do not connect</strong>.<br>' +
+      'When you see such redundancies, remember to answer <strong>do not connect</strong> if there is no direct contact between the blocks.<br><br>', 
 
       // Key mappings
       'In order to make a response, please use the following key mappings to respond:<br><br>' +
       `<img src=${instructionsQuestion[1]} alt="Sample Buttons" width="400" height="400">` +
       '<br><br>Please make your best guess, even if you are not certain.<br>' +
       'For the first part of the experiment, you will be shown feedback immediately about whether or not your choice was correct.<br><br>' +
-      'You will now be shown your final quiz question. If you get it correct, you will be shown practice trials.<br><br>',
+      'You will now be shown your final quiz questions. If you get them correct, you will be shown practice trials.<br><br>',
     ],
     show_clickable_nav: true,
   };
@@ -591,7 +633,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     data: { quiz: "quiz_4" },
     questions: [
       {
-        prompt: "If two blocks are in a certain relationship (to the left of, to the right of, above, or below) but they are not touching, you should answer 'do not connect.'",
+        prompt: "If two blocks are in a certain relationship (to the left of, to the right of, on top of, or below) but they are not touching, you should answer 'do not connect.'",
         options: ["True", "False"],
         correct: "True",
         required: true,
@@ -600,9 +642,19 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     randomize_question_order: false,
   };
 
+  const onTopOfTrial = {
+    type: HtmlKeyboardResponsePlugin,
+    stimulus: "Press the key corresponding to 'on top of'",
+    choices: ['ArrowUp'], // Only allow the up arrow key
+    // prompt: "<p>(Use the ↑ arrow key)</p>",
+    on_finish: function(data) {
+      data.correct = data.response === 'ArrowUp';
+    }
+  };
+
   // Loop node to repeat instruction + quiz until correct
   const loop_4 = {
-    timeline: [instructions_4, question_4],
+    timeline: [instructions_4, question_4, onTopOfTrial],
     loop_function: function(data) {
       const last_trial = data.values().find(trial => trial.quiz === "quiz_4");
   
@@ -632,8 +684,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     type: instructions,
     pages: [
       'Great job! You have answered all the quiz questions correctly.<br>' +
-      'You may now proceed to the practice trials.<br>' +
-      'You will see 10 practice trials before you start the experiment<br>',
+      'You may now proceed to the practice trials.<br><br>',
     ],
     show_clickable_nav: true
   };
