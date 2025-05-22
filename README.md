@@ -10,16 +10,22 @@ In the testing phase of this task, participants see 48 more trials of the same s
 
 ## Code structure
 
-The `src/experiment.js` file contains the experiment code; the `styles/main.scss` file contains the CSS styling. All of the assets are located in a remote Box folder that must be downloaded. See below for notes on how to alter the assets directory variable to allow your machine to locate those files.
+The `src/experiment.js` file contains the experiment code; the `styles/main.scss` file contains the CSS styling. The `assets` folder contains all necessary graphics. 
 
-All of the assets reside in https://yale.box.com/v/cncl-comp-inf-assets. 
-
-## Running the code
+## Running the code locally
 
 1. Download this repository.
 2. On terminal, `cd` into the repository.
 3. Download the assets folder from Box and place it inside this repository, naming it `assets`.
 4. Run `npm run build` and `npm start`.
+
+## Running the code from Vultr
+
+1. Log into Vultr.
+2. SSH into your server.
+3. Make sure that the git remote repository URL is set to the appropriate repository (this one, or a different one if you forked and made edits) with ```git remote add origin <your-repo-URL>```.
+4. Run ```git pull origin main```.
+5. Run `npm run build` and `npm start`.
 
    
 
