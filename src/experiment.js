@@ -1,7 +1,7 @@
 /**
  * @title Compositional_Inference
  * @description This is a jsPsych experiment designed to collect human behavioral data on visual inference on silhouettes. This is based off of Schwartenbeck et al. 2023.
- * @version 0.1.4
+ * @version 0.1.9
  * @environment JavaScript
  *
  * @assets assets/
@@ -10,6 +10,7 @@
 // You can import stylesheets (.scss or .css).
 import "../styles/main.scss";
 
+// Plugins
 import { JsPsych } from "jspsych";
 import { initJsPsych } from "jspsych";
 import FullscreenPlugin from "@jspsych/plugin-fullscreen";
@@ -20,7 +21,10 @@ import SurveyMultiChoicePlugin from "@jspsych/plugin-survey-multi-choice";
 import ImageButtonResponsePlugin from "@jspsych/plugin-image-button-response";
 import Papa from "papaparse";
 import HtmlButtonFeedbackPlugin from './plugin/button-feedback.js';
+import SurveyTextPlugin from "@jspsych/plugin-survey-text";
 import instructions from '@jspsych/plugin-instructions';
+// Prolific variables
+const PROLIFIC_URL = 'https://app.prolific.com/submissions/complete?cc=C1FVHTO8';
 
 /**
  * This function will be executed by jsPsych Builder and is expected to run the jsPsych experiment
@@ -33,7 +37,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   // Defining constants
   var timeline = []; // Empty timeline
   const trial_dur = 6000; // Trial duration in milliseconds
-  let currentDate = new Date(); // for file timestamp
+  const SKIP_PROLIFIC_ID = true;
 
   const csvUrl = "assets/block_relationships.csv";
   const imgBaseUrl = "assets";
@@ -49,9 +53,72 @@ export async function run({ assetPaths, input = {}, environment, title, version 
                               "assets/instructions/instruction3_silhouette.png"]
   const instructionsQuestion = ["assets/instructions/instruction2_question.png",
                                 "assets/instructions/instruction2_buttons.png",
-                                "assets/instructions/instruction1_question.png"]                
+                                "assets/instructions/instruction1_question.png"]   
+                                
+  // Create a function to safely access/create the counter div
+  function getCounterDiv() {
+  let counterDiv = document.getElementById('trial-counter');
+  
+  // If counter doesn't exist, create it
+    if (!counterDiv) {
+      counterDiv = document.createElement('div');
+      counterDiv.id = 'trial-counter';
+      counterDiv.style.position = 'fixed';
+      counterDiv.style.top = '5px';
+      counterDiv.style.right = '20px';
+      counterDiv.style.fontSize = '20px';
+      counterDiv.style.fontFamily = 'sans-serif';
+      counterDiv.style.color = '#555';
+      counterDiv.style.zIndex = '9999';
+      counterDiv.style.display = 'none';
+      document.body.appendChild(counterDiv);
+      console.log('Created new counter div');
+    }
+    
+    return counterDiv;
+    }
+
+    // Define counter variables for each section
+    let currentPracticeTrial = 0;
+    let totalPracticeTrials = 10;  
+
+    let currentTrainTrial = 0;
+    let totalTrainTrials = 192; 
+
+    let currentTestTrial = 0;
+    let totalTestTrials = 48;  
+
+    // Update counter function
+    function updateTrialCounter(phase) {
+      const div = getCounterDiv();
+      let currentCount, totalCount;
+      
+      if (phase === 'practice') {
+        currentCount = currentPracticeTrial;
+        totalCount = totalPracticeTrials;
+      } else if (phase === 'train') {
+        currentCount = currentTrainTrial;
+        totalCount = totalTrainTrials;
+      } else if (phase === 'test') {
+        currentCount = currentTestTrial;
+        totalCount = totalTestTrials;
+      }
+    
+      div.innerText = `Trial ${currentCount}/${totalCount}`;
+      div.style.display = 'block';
+      console.log(`Updated counter: ${currentCount}/${totalCount} (${phase})`);
+    }
 
   let blockRelationships = []; // Store parsed CSV data
+
+  // Fisher-Yates shuffle algorithm for stronger shuffle
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+    }
+    return array;
+  }
 
   // Helper function to fetch and parse CSV
   async function loadCSV(url) {
@@ -111,8 +178,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // **Setup Practice Graph**
   let practiceSession = [];
-  // let practiceStimuli = stimuli.sort(() => Math.random() - 0.5).slice(0, 10);
-  let practiceStimuli = stimuli.slice(0, 10);
+  let practiceStimuli = stimuli.slice(0, 9);
   for (let stim of practiceStimuli) {
       let row = blockRelationships.find(r => r.graph === practiceGraph && r.stimulus == stim);
       if (row) {
@@ -120,7 +186,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
               inference: constructInfPath(practiceGraph, stim),
               probe: constructProbePath(practiceGraph, stim, row.block_ID_1, row.block_ID_2, row.relationship),
               correct_relation: row.relationship,
-              trialType: "practice"
+              trial_category: "practice"
           };
           practiceSession.push(trial);
       }
@@ -143,7 +209,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
                   inference: constructInfPath(trainGraph, stim),
                   probe: constructProbePath(trainGraph, stim, row.block_ID_1, row.block_ID_2, row.relationship),
                   correct_relation: row.relationship,
-                  trialType: "training"
+                  trial_category: "train"
               };
               trainTrials.push(trial);
           }
@@ -151,7 +217,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   }
 
   // 🔀 Global shuffle after all trials are collected
-  let trainSession = trainTrials.sort(() => Math.random() - 0.5);
+  let trainSession = shuffleArray(trainTrials);
 
   // **Setup Test Session**
   let testTrials = [];
@@ -170,16 +236,16 @@ export async function run({ assetPaths, input = {}, environment, title, version 
               inference: constructInfPath(trainGraph, stim),
               probe: constructProbePath(trainGraph, stim, row.block_ID_1, row.block_ID_2, row.relationship),
               correct_relation: row.relationship,
-              trialType: "testing"
+              trial_category: "test"
           };
           testTrials.push(trial);
       }
   }
 
   // 🔀 Global shuffle after all test trials are created
-  let testSession = testTrials.sort(() => Math.random() - 0.5);
+  let testSession = shuffleArray(testTrials);
 
-  console.log("Experiment setup complete!");
+  console.log("Experiment setup complete!");  
 
   // Initialize the experiment
 
@@ -190,12 +256,19 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     minimum_valid_rt: 50,
     override_safe_mode: true,
     use_webaudio: false,
+    on_trial_start: function() {
+      getCounterDiv();
+    },
     // save to JATOS
     on_finish: () => {
       if (typeof jatos !== 'undefined') {
           // in jatos environment
-          jatos.endStudyAndRedirect(PROLIFIC_URL, jsPsych.data.get().json());
+          jatos.submitResultData(jsPsych.data.get().json())
+            .then(() => jatos.endStudy()); // <-- no redirect
+          // jatos.endStudyAndRedirect(PROLIFIC_URL);
       } else {
+          // local save as csv
+          jsPsych.data.get().localSave('csv', 'comp_inf_jspsych_data.csv');
           return jsPsych;
       };
     }, 
@@ -218,7 +291,6 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     video: assetPaths.video
   }); 
 
-
   // Defining task components
 
   // Inference trial 
@@ -229,6 +301,10 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     stimulus_width: 600,
     trial_duration: trial_dur,
     choices: "NO_KEYS",
+    on_start: function() {
+      const div = getCounterDiv();
+      div.style.display = 'block';
+    },
     data: {
         type: 'inference',
         exp_id: function() {
@@ -238,6 +314,68 @@ export async function run({ assetPaths, input = {}, environment, title, version 
           return parts[parts.length - 2];  // Gets the folder like '9'
         }
     },
+  };
+
+  // Probe trial practice
+  
+  var probeTrialPractice = {
+    type: HtmlButtonFeedbackPlugin,
+    stimulus: function() {
+      return jsPsych.timelineVariable('probe');
+    },
+    correct_relation: jsPsych.timelineVariable('correct_relation'),
+    trial_duration: 1000000,
+    feedback_duration: 1000,
+    trial_category: "practice",
+    on_start: function() {
+      // Use the same counter as in the inference trial
+      // No need to update the counter value, just ensure it's visible
+      const div = getCounterDiv();
+      div.style.display = 'block';
+    },
+    on_finish: function(data) {
+      data.timeout = !data.response_made;
+
+      // Increment trial counter after a complete probe trial
+      const phase = data.trial_category;
+
+      if (phase === 'practice') {
+        currentPracticeTrial++;
+        updateTrialCounter('practice');
+      } else if (phase === 'train') {
+        currentTrainTrial++;
+        updateTrialCounter('train');
+      } else if (phase === 'test') {
+        currentTestTrial++;
+        updateTrialCounter('test');
+      }
+    },
+    data: {
+      type: 'probe_train',
+      expression_id: function() {
+        const stimulus = jsPsych.timelineVariable('probe');
+        let parts = stimulus.split('/');
+        parts = parseInt(parts[parts.length - 2]);
+        return parts;
+      },
+      correct_relation: jsPsych.timelineVariable('correct_relation'),
+      block1_id: function() {
+        const filename = jsPsych.timelineVariable('probe');
+        const matches = filename.match(/(block\d|stable)_(block\d|stable)_/);
+        if (!matches) return null;
+    
+        const block1 = matches[1];
+        return block1 === 'stable' ? 4 : parseInt(block1.replace('block', ''));
+      },
+      block2_id: function() {
+        const filename = jsPsych.timelineVariable('probe');
+        const matches = filename.match(/(block\d|stable)_(block\d|stable)_/);
+        if (!matches) return null;
+    
+        const block2 = matches[2];
+        return block2 === 'stable' ? 4 : parseInt(block2.replace('block', ''));
+      }
+    }    
   };
 
   // Probe trial with feedback
@@ -250,10 +388,30 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     correct_relation: jsPsych.timelineVariable('correct_relation'),
     trial_duration: 1000000,
     feedback_duration: 1000,
-    trial_type: "train",
+    trial_category: "train",
+    on_start: function() {
+      // Use the same counter as in the inference trial
+      // No need to update the counter value, just ensure it's visible
+      const div = getCounterDiv();
+      div.style.display = 'block';
+    },
     on_finish: function(data) {
-      console.log('data from trial ', data)
-      data.timeout = !data.response_made
+      data.timeout = !data.response_made;
+
+      // Increment trial counter after a complete probe trial
+      const phase = data.trial_category;
+      console.log(phase);
+
+      if (phase === 'practice') {
+        currentPracticeTrial++;
+        updateTrialCounter('practice');
+      } else if (phase === 'train') {
+        currentTrainTrial++;
+        updateTrialCounter('train');
+      } else if (phase === 'test') {
+        currentTestTrial++;
+        updateTrialCounter('test');
+      }
     },
     data: {
       type: 'probe_train',
@@ -293,13 +451,34 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     correct_relation: jsPsych.timelineVariable('correct_relation'),
     trial_duration: 1000000,
     feedback_duration: 0,
-    trial_type: "test",
+    trial_category: "test",
+    on_start: function() {
+      // Use the same counter as in the inference trial
+      // No need to update the counter value, just ensure it's visible
+      const div = getCounterDiv();
+      div.style.display = 'block';
+    },
     on_finish: function(data) {
-      console.log('data from trial ', data)
-      data.timeout = !data.response_made
+      data.timeout = !data.response_made;
+
+      // Increment trial counter after a complete probe trial
+      const phase = data.trial_category;
+      console.log(phase);
+
+      if (phase === 'practice') {
+        currentPracticeTrial++;
+        updateTrialCounter('practice');
+      } else if (phase === 'train') {
+        currentTrainTrial++;
+        updateTrialCounter('train');
+      } else if (phase === 'test') {
+        currentTestTrial++;
+        updateTrialCounter('test');
+      }
     },
     data: {
       type: 'probe_train',
+      trial_category: "test",
       expression_id: function() {
         const stimulus = jsPsych.timelineVariable('probe');
         let parts = stimulus.split('/');
@@ -326,6 +505,8 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     }    
   };
 
+  /*
+
   // Start of script! 
 
   // Welcome screen
@@ -346,9 +527,9 @@ export async function run({ assetPaths, input = {}, environment, title, version 
         <hr />
         <div class="legal well">
             <p><b>Purpose:</b> We are conducting research on how we make inferences about the structures that make up our visual environments.</p>
-            <p><b>Brief description:</b> In this experiment, you will make judgments about the relationships of blocks inside silhouettes. In total, we think making these judgments will take less than 50 minutes to complete.</p>
+            <p><b>Brief description:</b> In this experiment, you will make judgments about the relationships of blocks inside silhouettes. In total, we think making these judgments will take less than 1.5 hours to complete.</p>
             <p><b>Procedures:</b> For each judgment, you will see an image of a silhouette, and your job is to make judgments about the relationships between the blocks that make up that silhouette.</p>
-            <p><b>Risks and Benefits:</b> Completing this task poses no more risk of harm to you than do the experiences of everyday life (e.g., from working on a computer). Although this study will not benefit you personally, we hope it will contribute to the advancement of our understanding of the human mind.</p>
+            <p><b>Risks and Benefits:</b> Completing this task poses no more risk of harm to you than do the experiences of everyday life (e.g., from working on a computer). Although this study will not benefit you personally, we hope it will contribute to the advancement of our understanding of the human mind. You will be compensated $10.00/hour for participating.</p>
             <p><b>Confidentiality:</b> All of the responses you provide during this study will be anonymous. You will not be asked to provide any identifying information, such as your name, in any of the questionnaires. Typically, only the researchers involved in this study and those responsible for research oversight will have access to the information you provide. However, we may also share the data with other researchers so that they can check the accuracy of our conclusions; this will not impact you because the data are anonymous.</p>
             <p>The researcher will not know your name, and no identifying information will be connected to your survey answers in any way. However, your account is associated with a Prolific number that the researcher has to be able to see in order to pay you, and in some cases these numbers are associated with public profiles which could, in theory, be searched. For this reason, though the researcher will not be looking at anyone’s public profiles, the fact of your participation in the research (as opposed to your actual survey responses) is technically considered “confidential” rather than truly anonymous.</p>
             <p><b>Voluntary Participation:</b> Your participation in this study is voluntary. You are free to decline to participate, to end your participation at any time for any reason, or to refuse to answer any individual question.</p>
@@ -377,6 +558,20 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     }
   });
 
+  // Prolific ID
+  if (!SKIP_PROLIFIC_ID) {
+    timeline.push({
+        type: SurveyTextPlugin,
+        questions: [{
+            prompt: 'Please enter your Prolific ID',
+            required: true
+        }],
+        data: {
+            type: "prolific_id",
+        }
+    });
+};
+
   // Switch to fullscreen
   timeline.push({
     type: FullscreenPlugin,
@@ -404,7 +599,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     // Example constructions and silhouettes [How many blocks are in each silhouette?]
     '<h3>Compositions</h3><br>' +
     'You will be seeing <strong>any 3 of these 4 blocks</strong> at a time, placed into a composition.<br>' +
-    'No block will be repeated, i.e. exist twice in the same composition.<br>' +
+    'No block will be repeated, i.e. no block exists twice in the same composition.<br>' +
     'Here are some examples of compositions.<br>' +
     '<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">' +
       `<img src=${instructionsColor[0]} alt="Sample Composition #1" width="200" height="200">` +
@@ -474,16 +669,16 @@ export async function run({ assetPaths, input = {}, environment, title, version 
       `<img src=${instructionsColor[0]} alt="Sample Composition #1" width="200" height="200"></div>` +
       '<br>Now consider the following blocks that are a part of this composition.<br>' +
       `<div style="display: flex; justify-content: center; gap: 50px; margin-top: 50px; margin-bottom: 50px;">` +
-        `<img src=${imgBlock[0]} alt="Block 4" width="180" height="60">` + 
         `<img src=${imgBlock[2]} alt="Block 2" width="100" height="100">` +
         `<img src=${imgBlock[3]} alt="Block 3" width="60" height="180">` +
+        `<img src=${imgBlock[0]} alt="Block 4" width="180" height="60">` + 
       '</div>' +
       '<br>They are in the following relationships.<br>' +
       'The stone block is <strong>to the left of</strong> the brick block.<br>' +
+      'The stone block <strong>did not connect</strong> to the steel block, and vice versa.<br>' +
       'The brick block is <strong>to the right of</strong> the stone block.<br>' +
-      'The steel block is <strong>on top of</strong> the brick block.<br>' +
       'The brick block is <strong>below</strong> the steel block.<br>' +
-      'The stone block is <strong>not connected to</strong> the steel block, and vice versa.<br><br>',
+      'The steel block is <strong>on top of</strong> the brick block.<br><br>',
     ],
     show_clickable_nav: true,
   };
@@ -676,7 +871,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
   };
   
   timeline.push(loop_4);  
-  
+
   // Practice procedure
 
   // Instruction transition
@@ -684,7 +879,7 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     type: instructions,
     pages: [
       'Great job! You have answered all the quiz questions correctly.<br>' +
-      'You may now proceed to the practice trials.<br><br>',
+      'You will now see 10 practice trials to familiarize yourself with the task.<br><br>',
     ],
     show_clickable_nav: true
   };
@@ -692,27 +887,41 @@ export async function run({ assetPaths, input = {}, environment, title, version 
 
   // Practice procedure
   var practice_procedure = {
-    timeline: [infTrial, probeTrialTrain],
+    timeline: [infTrial, probeTrialPractice],
     timeline_variables: practiceSession,
+    on_timeline_start: function() {
+      currentPracticeTrial = 1;
+      updateTrialCounter('practice');
+    },
+    on_timeline_finish: function() {
+      const div = getCounterDiv();
+      div.style.display = 'none';
+    }
   };
   timeline.push(practice_procedure);
-
 
   // Practice transition
   timeline.push({
     type: instructions,
     pages: [
       'You have now completed the practice.<br>' +
-      'Click below to begin the experiment.<br><br>'
+      'You may now begin the first component of the experiment, which consists of 192 trials.<br><br>'
     ],
     show_clickable_nav: true,
     });
 
-    
   // Training session
   var train_procedure = {
     timeline: [infTrial, probeTrialTrain],
     timeline_variables: trainSession,
+    on_timeline_start: function() {
+      currentTrainTrial = 1;
+      updateTrialCounter('train');
+    },
+    on_timeline_finish: function() {
+      const div = getCounterDiv();
+      div.style.display = 'none';
+    }
   };
   timeline.push(train_procedure);
 
@@ -720,17 +929,28 @@ export async function run({ assetPaths, input = {}, environment, title, version 
     timeline.push({
       type: instructions,
       pages: [
-        'You have now completed the first part of the experiment.<br>' +
-        'In the next part, you will no longer be shown any feedback.<br>' +
-        'Please try to make your best guess.<br><br>',
+        'You have now completed the first component of the experiment.<br>' +
+        'In the second and final component, you will see 48 trials in which you will not be shown any feedback.<br>' +
+        'Please be aware that the buttons will not change color. It may appear at first that you did not make a response before the screen changes.<br>' +
+        'Try to make your best guess, even if you do not know. Good luck!<br><br>',
       ],
       show_clickable_nav: true,
       });
   
+      */
+
   // Testing procedure
   var test_procedure = {
     timeline: [infTrial, probeTrialTest],
     timeline_variables: testSession,
+    on_timeline_start: function() {
+      currentTestTrial = 1;
+      updateTrialCounter('test');
+    },
+    on_timeline_finish: function() {
+      const div = getCounterDiv();
+      div.style.display = 'none';
+    }
   };
   timeline.push(test_procedure);
 
